@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { fetchApi } from "@/lib/api";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
 
 interface ServiceQuestion {
   id?: string;
@@ -90,6 +91,49 @@ export default function ServiceConfig() {
   const [newOptions, setNewOptions] = useState(""); // comma-separated
   const [qSaving, setQSaving] = useState(false);
   const [qError, setQError] = useState("");
+
+  // ── Live Preview state ─────────────────────────────
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [slotLoading, setSlotLoading] = useState(false);
+
+  const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
+
+  useEffect(() => {
+    if (id) loadPreviewDates();
+  }, [id]);
+
+  async function loadPreviewDates() {
+    try {
+      const data = await fetchApi(`/services/${id}/available-dates/`);
+      setAvailableDates(Array.isArray(data) ? data : []);
+    } catch (err) {}
+  }
+
+  async function handleDateClick(date: Date) {
+    const dStr = format(date, "yyyy-MM-dd");
+    setSelectedDate(dStr);
+    setSlotLoading(true);
+    try {
+      const data = await fetchApi(`/services/${id}/slots/?date=${dStr}`);
+      setAvailableSlots(data);
+    } catch (err) {}
+    setSlotLoading(false);
+  }
+
+  // Generate calendar grid
+  const monthStart = startOfMonth(calendarMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const calendarDays = [];
+  let day = startDate;
+  while (day <= endDate) {
+    calendarDays.push(day);
+    day = addDays(day, 1);
+  }
 
   useEffect(() => {
     loadService();
@@ -547,46 +591,86 @@ export default function ServiceConfig() {
             </div>
 
             {/* ══════ VISUAL DAY CALENDAR ══════ */}
-            {(()=>{
-              const sH=parseInt((service.working_start_time||"09:00").split(":")[0]);
-              const sM=parseInt((service.working_start_time||"09:00").split(":")[1]);
-              const eH=parseInt((service.working_end_time||"17:00").split(":")[0]);
-              const eM=parseInt((service.working_end_time||"17:00").split(":")[1]);
-              const total=(eH*60+eM)-(sH*60+sM);
-              const dur=service.duration_minutes||30;
-              const n=Math.floor(total/dur);
-              const actDays=7-(service.excluded_days||[]).length;
-              if(n<=0) return null;
-              return(
-                <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
-                  <h3 className="text-base font-semibold text-white mb-1">📋 Day Schedule Preview</h3>
-                  <p className="text-xs text-[#64748b] mb-4">How each working day will look — {n} sessions × {actDays} active days = <span className="text-emerald-400 font-bold">{n*actDays} total slots</span></p>
-                  <div className="rounded-xl border border-[rgba(255,255,255,0.08)] overflow-hidden">
-                    {/* Timeline header */}
-                    <div className="bg-[rgba(124,58,237,0.06)] px-4 py-2 flex items-center justify-between border-b border-[rgba(255,255,255,0.06)]">
-                      <span className="text-xs font-bold text-[#a78bfa]">{service.working_start_time||"09:00"}</span>
-                      <span className="text-[10px] text-[#64748b]">{dur} min sessions</span>
-                      <span className="text-xs font-bold text-[#a78bfa]">{service.working_end_time||"17:00"}</span>
-                    </div>
-                    {/* Slot blocks */}
-                    <div className="p-3 flex flex-wrap gap-1.5">
-                      {Array.from({length:Math.min(n,32)}).map((_,i)=>{
-                        const ms=sH*60+sM+i*dur;
-                        const me=ms+dur;
-                        const fmtT=(m:number)=>`${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
-                        return(
-                          <div key={i} className="flex-shrink-0 px-2.5 py-2 rounded-lg bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.15)] hover:bg-[rgba(124,58,237,0.15)] transition-all cursor-default group">
-                            <div className="text-[11px] font-mono font-bold text-[#a78bfa]">{fmtT(ms)}</div>
-                            <div className="text-[9px] text-[#64748b] group-hover:text-[#94a3b8]">{fmtT(me)}</div>
-                          </div>
-                        );
-                      })}
-                      {n>32&&<div className="flex items-center px-2 text-[10px] text-[#64748b]">+{n-32} more</div>}
+            {/* ══════ LIVE AVAILABILITY PREVIEW ══════ */}
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-semibold text-white mb-1">Live Availability Preview</h3>
+                  <p className="text-xs text-[#64748b]">Select a date to see actual slots based on your saved settings & Google Calendar</p>
+                </div>
+                <button type="button" onClick={loadPreviewDates} className="px-3 py-1.5 text-xs font-medium bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] rounded-lg transition-all text-[#94a3b8]">
+                  Refresh Preview
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-[rgba(255,255,255,0.02)] p-4 rounded-xl border border-[rgba(255,255,255,0.06)]">
+                {/* Interactive Calendar */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold text-white">{format(calendarMonth, "MMMM yyyy")}</h4>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={(e) => { e.preventDefault(); setCalendarMonth(subMonths(calendarMonth, 1)); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all">←</button>
+                      <button type="button" onClick={(e) => { e.preventDefault(); setCalendarMonth(addMonths(calendarMonth, 1)); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all">→</button>
                     </div>
                   </div>
+                  <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                    {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
+                      <div key={d} className="text-[10px] font-bold text-[#64748b]">{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {calendarDays.map((d, i) => {
+                      const isCurrentMonth = isSameMonth(d, calendarMonth);
+                      const dStr = format(d, "yyyy-MM-dd");
+                      const isAvailable = availableDateSet.has(dStr);
+                      const isSelected = selectedDate === dStr;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          disabled={!isAvailable}
+                          onClick={() => handleDateClick(d)}
+                          className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-all relative ${!isCurrentMonth ? "opacity-30" : ""} ${isSelected ? "bg-[#7c3aed] text-white font-bold shadow-[0_0_15px_rgba(124,58,237,0.3)]" : isAvailable ? "bg-[rgba(255,255,255,0.05)] text-white hover:bg-[rgba(255,255,255,0.1)] cursor-pointer" : "text-[#4b5563] cursor-not-allowed"}`}
+                        >
+                          {format(d, "d")}
+                          {isAvailable && !isSelected && (
+                            <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#a78bfa]"></span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              );
-            })()}
+
+                {/* Slots Panel */}
+                <div className="border-t lg:border-t-0 lg:border-l border-[rgba(255,255,255,0.06)] pt-4 lg:pt-0 lg:pl-6">
+                  <h4 className="font-semibold text-white mb-4">
+                    {selectedDate ? format(new Date(selectedDate), "EEEE, MMMM d") : "Select a date"}
+                  </h4>
+                  {selectedDate ? (
+                    slotLoading ? (
+                      <div className="flex items-center justify-center h-32 text-sm text-[#64748b]">Loading slots...</div>
+                    ) : availableSlots.length > 0 ? (
+                      <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                        {availableSlots.map((slot: any, i: number) => {
+                          const sTime = slot.start_time.substring(0, 5);
+                          return (
+                            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.15)] group">
+                              <span className="text-sm font-bold text-[#a78bfa]">{sTime}</span>
+                              <span className="text-[10px] text-[#64748b]">{(service.capacity_per_slot||1) > 1 ? `${slot.remaining_capacity} spots left` : "Available"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-32 text-sm text-[#64748b]">No slots available</div>
+                    )
+                  ) : (
+                    <div className="flex items-center justify-center h-32 text-sm text-[#64748b]">Choose a date on the calendar</div>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <button
               type="submit"
