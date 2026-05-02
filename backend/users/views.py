@@ -3,8 +3,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
-from .models import Organization
+from .models import Organization, GoogleCredential
 from .serializers import UserSerializer, OrganizationSerializer
+
+# Google Auth Imports
+import os
+from django.shortcuts import redirect
+from google_auth_oauthlib.flow import Flow
+from google.oauth2.credentials import Credentials
 
 User = get_user_model()
 
@@ -59,3 +65,88 @@ class JoinOrganizationView(APIView):
             'organization_id': org.id,
             'role': user.role
         })
+
+
+# --- Google Calendar OAuth Views ---
+
+class GoogleAuthURLView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+                    "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                }
+            },
+            scopes=['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/calendar.events'],
+            redirect_uri=os.getenv("GOOGLE_REDIRECT_URI")
+        )
+        
+        # Pass user ID in 'state' so we know who to save tokens for in callback
+        auth_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true',
+            prompt='consent',
+            state=str(request.user.id)
+        )
+        
+        return Response({'url': auth_url})
+
+
+class GoogleAuthCallbackView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        error = request.query_params.get('error')
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+
+        if error:
+            # User likely cancelled or denied access
+            return redirect(f"{frontend_url}/dashboard/settings?google_sync=error")
+
+        code = request.query_params.get('code')
+        user_id = request.query_params.get('state')
+        
+        if not code or not user_id:
+            return redirect(f"{frontend_url}/dashboard/settings?google_sync=error")
+
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+                    "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                }
+            },
+            scopes=['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/calendar.events'],
+            redirect_uri=os.getenv("GOOGLE_REDIRECT_URI")
+        )
+        
+        flow.fetch_token(code=code)
+        creds = flow.credentials
+
+        try:
+            user = User.objects.get(id=user_id)
+            GoogleCredential.objects.update_or_create(
+                user=user,
+                defaults={
+                    'token': creds.token,
+                    'refresh_token': creds.refresh_token,
+                    'token_uri': creds.token_uri,
+                    'client_id': creds.client_id,
+                    'client_secret': creds.client_secret,
+                    'scopes': ','.join(creds.scopes)
+                }
+            )
+            user.google_calendar_connected = True
+            user.save()
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
+
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        return redirect(f"{frontend_url}/dashboard/settings?google_sync=success")

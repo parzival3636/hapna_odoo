@@ -9,4 +9,7 @@ urlpatterns = [
     path('me/', views.CurrentUserView.as_view(), name='current_user'),
     path('organizations/', views.OrganizationListView.as_view(), name='organization-list'),
     path('join-organization/', views.JoinOrganizationView.as_view(), name='join-organization'),
+    # Google Calendar OAuth
+    path('google-auth/url/', views.GoogleAuthURLView.as_view(), name='google-auth-url'),
+    path('google-auth/callback/', views.GoogleAuthCallbackView.as_view(), name='google-auth-callback'),
 ]

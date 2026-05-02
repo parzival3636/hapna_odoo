@@ -10,7 +10,7 @@ from bookings.models import Booking, Service
 def get_organiser_services(user):
     if user.role == 'admin':
         return Service.objects.values_list('id', flat=True)
-    return Service.objects.filter(organization=user.organization).values_list('id', flat=True)
+    return Service.objects.filter(created_by=user).values_list('id', flat=True)
 
 
 class ReportsSummaryView(APIView):

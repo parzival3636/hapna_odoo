@@ -33,6 +33,9 @@ class BookingListSerializer(serializers.Serializer):
     capacity_booked = serializers.IntegerField()
     no_show_risk_score = serializers.FloatField()
     payment_status = serializers.CharField()
+    meeting_provider = serializers.CharField()
+    meeting_id = serializers.CharField()
+    meeting_link = serializers.CharField()
     confirmation_token = serializers.CharField()
     created_at = serializers.DateTimeField()
 
