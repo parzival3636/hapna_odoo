@@ -25,7 +25,7 @@ export default function OrganiserServices() {
   async function loadServices() {
     try {
       const data = await fetchApi("/services/");
-      setServices(data || []);
+      setServices(Array.isArray(data) ? data : data.results ?? []);
     } catch (err: any) {
       setError(err.message || "Failed to load services");
     } finally {

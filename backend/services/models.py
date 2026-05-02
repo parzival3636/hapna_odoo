@@ -63,13 +63,21 @@ class FlexibleSlot(models.Model):
     end_time = models.TimeField()
 
 class ServiceQuestion(models.Model):
+    QUESTION_TYPE_CHOICES = [
+        ('single_line', 'Single line text'),
+        ('multi_line', 'Multi-line text'),
+        ('phone', 'Phone Number'),
+        ('radio', 'Radio (One Answer)'),
+        ('checkbox', 'Checkboxes (Multiple Answers)'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField()
     is_required = models.BooleanField(default=False)
     display_order = models.IntegerField(default=0)
-    question_type = models.CharField(max_length=50, default='text')
-    options = models.JSONField(null=True, blank=True) # for select type
+    question_type = models.CharField(max_length=50, choices=QUESTION_TYPE_CHOICES, default='single_line')
+    options = models.JSONField(null=True, blank=True)  # for radio / checkbox types
 
 class Resource(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

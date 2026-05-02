@@ -23,7 +23,7 @@ export default function CustomerServices() {
     async function load() {
       try {
         const data = await fetchApi("/services/", { requireAuth: false });
-        setServices(data || []);
+        setServices(Array.isArray(data) ? data : data.results ?? []);
       } catch { /* empty */ }
       setLoading(false);
     }

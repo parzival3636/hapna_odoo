@@ -13,9 +13,19 @@ from .serializers import (
 class ServiceViewSet(viewsets.ModelViewSet):
     serializer_class = ServiceSerializer
     permission_classes = [IsAuthenticated]
+    lookup_value_regex = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+
+    def get_permissions(self):
+        # Allow public browsing of published services
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return super().get_permissions()
 
     def get_queryset(self):
         user = self.request.user
+        # Unauthenticated users or customers: show only published & approved services
+        if not user.is_authenticated or user.role == 'customer':
+            return Service.objects.filter(is_published=True, approval_status='approved')
         if user.role == 'admin':
             return Service.objects.all()
         if user.organization:

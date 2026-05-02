@@ -23,13 +23,9 @@ export default function AdminOrganizations() {
 
   async function loadOrganizations() {
     try {
-      const data = await fetchApi("/admin/organizations/");
-      // Wait, let's check if the endpoint is /admin/organizations/ or /users/organizations/
-      // In backend/admin_panel/urls.py we have 'organizations/' mapping to AdminOrganizationCreateView
-      // But we might need a list view for admins too. 
-      // Actually, OrganizationListView in users/views.py is AllowAny and maps to /api/users/organizations/
-      const orgs = await fetchApi("/users/organizations/", { requireAuth: true });
-      setOrganizations(orgs);
+      const data = await fetchApi("/users/organizations/", { requireAuth: true });
+      // DRF returns paginated response { results: [...] } — extract the array
+      setOrganizations(Array.isArray(data) ? data : data.results ?? []);
     } catch (err: any) {
       setError(err.message || "Failed to load organizations");
     } finally {

@@ -20,7 +20,8 @@ export default function JoinOrganizationPage() {
     async function loadOrgs() {
       try {
         const data = await fetchApi("/users/organizations/", { requireAuth: false });
-        setOrganizations(data);
+        // DRF returns paginated response { results: [...] } — extract the array
+        setOrganizations(Array.isArray(data) ? data : data.results ?? []);
       } catch (err: any) {
         setError(err.message || "Failed to load organizations");
       } finally {
