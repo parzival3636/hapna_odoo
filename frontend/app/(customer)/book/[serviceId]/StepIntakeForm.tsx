@@ -179,6 +179,27 @@ export default function StepIntakeForm({ service, state, update, onBack }: Props
     }
   }
 
+  async function handleBack() {
+    if (!holdExpired && state.holdId) {
+      const confirmRelease = window.confirm(
+        "Are you sure you want to go back? This will release your current slot reservation."
+      );
+      if (!confirmRelease) return;
+
+      try {
+        await customerApi(`/slots/hold/${state.holdId}/`, {
+          method: "DELETE",
+          requireAuth: true,
+        });
+      } catch {
+        // ignore idempotent deletion errors
+      }
+    }
+    
+    update({ holdId: undefined, selectedSlot: null });
+    onBack();
+  }
+
   const slotLabel = state.selectedSlot
     ? `${state.selectedSlot.start} – ${state.selectedSlot.end}`
     : "";
@@ -199,7 +220,7 @@ export default function StepIntakeForm({ service, state, update, onBack }: Props
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold">Complete Your Booking</h2>
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="text-sm text-[#94a3b8] hover:text-white transition-colors"
         >
           ← Change Slot
@@ -246,7 +267,7 @@ export default function StepIntakeForm({ service, state, update, onBack }: Props
             ⏰ Your slot reservation has expired.
           </p>
           <button
-            onClick={onBack}
+            onClick={handleBack}
             className="text-sm text-white bg-[rgba(239,68,68,0.3)] hover:bg-[rgba(239,68,68,0.5)] px-4 py-2 rounded-lg transition-all"
           >
             ← Go back and pick a slot
@@ -368,7 +389,7 @@ export default function StepIntakeForm({ service, state, update, onBack }: Props
                 {alternatives.map((alt) => (
                   <button
                     key={alt}
-                    onClick={onBack}
+                    onClick={handleBack}
                     className="text-xs px-3 py-1.5 rounded-lg bg-[rgba(124,58,237,0.15)] border border-[rgba(124,58,237,0.3)] text-[#a78bfa] hover:bg-[rgba(124,58,237,0.25)] transition-all"
                   >
                     {alt}

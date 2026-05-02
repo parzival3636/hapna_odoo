@@ -44,21 +44,17 @@ export default function StepSlotGrid({
   const fetchSlots = useCallback(async () => {
     try {
       const params = new URLSearchParams({ date });
-      const data = await fetchApi(
-        `/services/${serviceId}/slots/?${params}`,
+      const data = await customerApi(
+        `/services/${serviceId}/availability/?${params}`,
         { requireAuth: false }
       );
-      const mapped = (data || []).map((s: any) => {
-        let status = "available";
-        if (s.remaining_capacity <= 0) status = "full";
-        else if (s.remaining_capacity === 1) status = "last_1";
-        else if (s.remaining_capacity === 2) status = "last_2";
+      const mapped = (data.slots || []).map((s: any) => {
         return {
-          start: s.start_time,
-          end: s.end_time,
-          remaining: s.remaining_capacity,
-          total_capacity: maxCapacity || 1,
-          status,
+          start: s.start.slice(0, 5),
+          end: s.end.slice(0, 5),
+          remaining: s.remaining,
+          total_capacity: s.total_capacity,
+          status: s.status,
         };
       });
       setSlots(mapped);
