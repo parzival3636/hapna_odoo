@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { customerApi } from "@/lib/customer-api";
+import { fetchApi } from "@/lib/api";
 import type { BookingState } from "./page";
 
 interface Slot {
@@ -33,47 +34,83 @@ export default function StepSlotGrid({
 }: Props) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [holdLoading, setHoldLoading] = useState(false);
+  // Layer 1 — optimistic pending: slot key -> true while server is processing
+  const [pendingSlot, setPendingSlot] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [capacity, setCapacity] = useState(state.capacity);
+  // Layer 4 — track last fetch for polling
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    loadSlots();
-  }, [serviceId, resourceId, date]);
-
-  async function loadSlots() {
-    setLoading(true);
+  const fetchSlots = useCallback(async () => {
     try {
       const params = new URLSearchParams({ date });
-      if (resourceId) params.set("resource_id", resourceId);
-      const data = await customerApi(
-        `/services/${serviceId}/availability/?${params}`,
+      const data = await fetchApi(
+        `/services/${serviceId}/slots/?${params}`,
         { requireAuth: false }
       );
-      setSlots(data.slots || []);
+      const mapped = (data || []).map((s: any) => {
+        let status = "available";
+        if (s.remaining_capacity <= 0) status = "full";
+        else if (s.remaining_capacity === 1) status = "last_1";
+        else if (s.remaining_capacity === 2) status = "last_2";
+        return {
+          start: s.start_time,
+          end: s.end_time,
+          remaining: s.remaining_capacity,
+          total_capacity: maxCapacity || 1,
+          status,
+        };
+      });
+      setSlots(mapped);
     } catch {
       setError("Failed to load slots.");
     }
-    setLoading(false);
-  }
+  }, [serviceId, date, maxCapacity]);
+
+  // Initial load
+  useEffect(() => {
+    setLoading(true);
+    fetchSlots().finally(() => setLoading(false));
+  }, [fetchSlots]);
+
+  // Layer 4 — Poll every 15 s to reflect holds/bookings by other users
+  useEffect(() => {
+    pollRef.current = setInterval(fetchSlots, 15_000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [fetchSlots]);
 
   async function selectSlot(slot: Slot) {
-    if (slot.status === "full" || slot.remaining < 1) return;
+    if (slot.status === "full" || slot.remaining < 1 || pendingSlot) return;
 
-    setHoldLoading(true);
+    const slotKey = `${slot.start}-${slot.end}`;
+
+    // ── Layer 1: Optimistic UI — dim slot instantly ──────────────────────────
+    setPendingSlot(slotKey);
     setError("");
+
+    // Gray out optimistically in local state
+    setSlots((prev) =>
+      prev.map((s) =>
+        s.start === slot.start && s.end === slot.end
+          ? { ...s, status: "pending" as string }
+          : s
+      )
+    );
 
     // Release previous hold if any
     if (state.holdId) {
       try {
-        await customerApi(`/slots/hold/${state.holdId}/delete/`, {
+        await customerApi(`/slots/hold/${state.holdId}/`, {
           method: "DELETE",
           requireAuth: true,
         });
-      } catch { /* ok */ }
+      } catch { /* ok — idempotent */ }
     }
 
     try {
+      // ── Layer 2: Soft reservation — 10-minute hold ────────────────────────
       const hold = await customerApi("/slots/hold/", {
         method: "POST",
         requireAuth: true,
@@ -86,6 +123,8 @@ export default function StepSlotGrid({
           ...(resourceId ? { resource_id: resourceId } : {}),
         }),
       });
+
+      // Navigate to intake form with hold in state
       update({
         selectedSlot: { start: slot.start, end: slot.end },
         holdId: hold.id,
@@ -93,38 +132,70 @@ export default function StepSlotGrid({
         step: 2,
       });
     } catch (err: any) {
-      setError(
-        err?.data?.message || "Failed to reserve slot. Try again."
+      // Undo optimistic dim on failure
+      setSlots((prev) =>
+        prev.map((s) =>
+          s.start === slot.start && s.end === slot.end
+            ? { ...s, status: slot.status }
+            : s
+        )
       );
+
+      const code = err?.code || err?.data?.code;
+      const msg = err?.data?.message || err?.message || "Failed to reserve slot.";
+
+      if (code === "SLOT_FULL") {
+        setError("⚡ Someone just grabbed that slot! Pick another.");
+        // Immediately refresh to show real state
+        fetchSlots();
+      } else if (code === "SLOT_NOT_FOUND") {
+        setError("Slot no longer available. Refreshing...");
+        fetchSlots();
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setPendingSlot(null);
     }
-    setHoldLoading(false);
   }
 
-  function statusColor(slot: Slot) {
+  function slotClassName(slot: Slot): string {
+    const slotKey = `${slot.start}-${slot.end}`;
+    const isSelected =
+      state.selectedSlot?.start === slot.start &&
+      state.selectedSlot?.end === slot.end;
+    const isPending = pendingSlot === slotKey;
+
+    if (isSelected) {
+      return "border-[#7c3aed] bg-[rgba(124,58,237,0.15)] shadow-[0_0_12px_rgba(124,58,237,0.3)]";
+    }
+    if (isPending || slot.status === "pending") {
+      return "border-[rgba(100,116,139,0.4)] bg-[rgba(100,116,139,0.08)] opacity-60 cursor-wait animate-pulse";
+    }
     switch (slot.status) {
       case "available":
-        return "border-[rgba(74,222,128,0.3)] hover:border-[#4ade80] hover:bg-[rgba(74,222,128,0.08)]";
+        return "border-[rgba(74,222,128,0.3)] hover:border-[#4ade80] hover:bg-[rgba(74,222,128,0.08)] cursor-pointer";
       case "last_2":
-        return "border-[rgba(251,191,36,0.3)] hover:border-[#fbbf24] hover:bg-[rgba(251,191,36,0.08)]";
+        return "border-[rgba(251,191,36,0.3)] hover:border-[#fbbf24] hover:bg-[rgba(251,191,36,0.08)] cursor-pointer";
       case "last_1":
-        return "border-[rgba(248,113,113,0.3)] hover:border-[#f87171] hover:bg-[rgba(248,113,113,0.08)]";
+        return "border-[rgba(248,113,113,0.3)] hover:border-[#f87171] hover:bg-[rgba(248,113,113,0.08)] cursor-pointer";
       case "full":
         return "border-[rgba(255,255,255,0.05)] opacity-40 cursor-not-allowed";
       default:
-        return "border-[rgba(255,255,255,0.1)]";
+        return "border-[rgba(255,255,255,0.1)] cursor-pointer";
     }
   }
 
   function statusDot(slot: Slot) {
+    const isPending =
+      pendingSlot === `${slot.start}-${slot.end}` ||
+      slot.status === "pending";
+    if (isPending) return "bg-[#64748b] animate-pulse";
     switch (slot.status) {
-      case "available":
-        return "bg-[#4ade80]";
-      case "last_2":
-        return "bg-[#fbbf24]";
-      case "last_1":
-        return "bg-[#f87171]";
-      default:
-        return "bg-[#334155]";
+      case "available": return "bg-[#4ade80]";
+      case "last_2":    return "bg-[#fbbf24]";
+      case "last_1":    return "bg-[#f87171]";
+      default:          return "bg-[#334155]";
     }
   }
 
@@ -193,32 +264,27 @@ export default function StepSlotGrid({
         <>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {slots.map((slot) => {
-              const isSelected =
-                state.selectedSlot?.start === slot.start &&
-                state.selectedSlot?.end === slot.end;
+              const slotKey = `${slot.start}-${slot.end}`;
+              const isPending = pendingSlot === slotKey;
+              const isFull = slot.status === "full";
               return (
                 <button
-                  key={`${slot.start}-${slot.end}`}
-                  disabled={slot.status === "full" || holdLoading}
+                  key={slotKey}
+                  disabled={isFull || !!pendingSlot}
                   onClick={() => selectSlot(slot)}
-                  className={`relative rounded-xl border p-3 text-center transition-all ${
-                    isSelected
-                      ? "border-[#7c3aed] bg-[rgba(124,58,237,0.15)] shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                      : statusColor(slot)
-                  }`}
+                  className={`relative rounded-xl border p-3 text-center transition-all ${slotClassName(slot)}`}
                 >
-                  <div className="text-sm font-semibold">
-                    {slot.start}
-                  </div>
-                  <div className="text-xs text-[#64748b] mt-1">
-                    to {slot.end}
-                  </div>
+                  {isPending && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[rgba(0,0,0,0.4)] z-10">
+                      <div className="w-4 h-4 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                  <div className="text-sm font-semibold">{slot.start}</div>
+                  <div className="text-xs text-[#64748b] mt-1">to {slot.end}</div>
                   <div className="flex items-center justify-center gap-1 mt-2">
-                    <span
-                      className={`w-2 h-2 rounded-full ${statusDot(slot)}`}
-                    />
+                    <span className={`w-2 h-2 rounded-full ${statusDot(slot)}`} />
                     <span className="text-[10px] text-[#94a3b8]">
-                      {slot.remaining}/{slot.total_capacity}
+                      {isFull ? "Full" : `${slot.remaining}/${slot.total_capacity}`}
                     </span>
                   </div>
                 </button>
@@ -240,17 +306,16 @@ export default function StepSlotGrid({
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-[#334155]" /> Full
             </span>
+            <span className="ml-auto text-[10px] text-[#475569] animate-pulse">
+              ● Live
+            </span>
           </div>
         </>
       )}
 
       {error && (
-        <p className="mt-4 text-[#ef4444] text-sm">{error}</p>
-      )}
-
-      {holdLoading && (
-        <div className="mt-4 text-center text-sm text-[#94a3b8] animate-pulse">
-          Reserving your slot...
+        <div className="mt-4 p-3 rounded-lg bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)]">
+          <p className="text-[#ef4444] text-sm">{error}</p>
         </div>
       )}
     </div>

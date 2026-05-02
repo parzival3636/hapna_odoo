@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.auth',
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
     # Customer-side apps
     'services',
@@ -26,6 +27,7 @@ INSTALLED_APPS = [
     'profile_autofill',
     'waitlist',
     'notifications',
+    'bot_sessions',
 ]
 
 MIDDLEWARE = [
@@ -48,7 +50,7 @@ DATABASES = {
 # ── Django REST Framework ─────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'middleware.auth.SimpleJWTAuthentication',
+        'middleware.auth.CustomerJWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -91,3 +93,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
+
+# ── JWT ─────────────────────────────────────────────────────────────────────────────
+# Must match backend/ SIMPLE_JWT exactly so tokens are interoperable.
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'SIGNING_KEY': SECRET_KEY,  # same key as backend/
+}

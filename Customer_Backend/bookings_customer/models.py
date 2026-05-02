@@ -51,6 +51,7 @@ class Service(models.Model):
     manual_confirmation = models.BooleanField(default=False)
     advance_payment_required = models.BooleanField(default=False)
     max_capacity = models.IntegerField(null=True, blank=True)
+    capacity_per_slot = models.IntegerField(null=True, blank=True)  # new schema field
     timezone = models.TextField(default='Asia/Kolkata')
     confirmation_message = models.TextField(null=True, blank=True)
     booking_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

@@ -11,7 +11,7 @@ import uuid
 from django.db import models
 
 
-class CustomerProfile(models.Model):
+class UserProfile(models.Model):
     """
     Maps to users_user table.
     Only the columns that actually exist in the DB schema are defined here.
@@ -77,3 +77,26 @@ class BookingAnswer(models.Model):
     class Meta:
         managed = False
         db_table = 'bookings_bookinganswer'
+
+
+class CustomerProfile(models.Model):
+    """
+    Maps to customer_profiles table defined in 001_schema.sql.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    user_id = models.TextField(unique=True)
+    full_name = models.TextField(null=True, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.TextField(null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    city = models.TextField(null=True, blank=True)
+    pincode = models.TextField(null=True, blank=True)
+    preferred_language = models.TextField(default='en')
+    emergency_contact = models.TextField(null=True, blank=True)
+    medical_notes = models.TextField(null=True, blank=True)
+    custom_fields = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'customer_profiles'

@@ -36,6 +36,14 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    
+    // Automatically log out if the token is invalid
+    if (response.status === 401 && typeof window !== "undefined") {
+      Cookies.remove("access_token");
+      Cookies.remove("refresh_token");
+      window.location.href = "/login";
+    }
+
     throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
   }
 
