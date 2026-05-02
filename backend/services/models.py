@@ -25,10 +25,17 @@ class Service(models.Model):
     is_published = models.BooleanField(default=False)
     approval_status = models.CharField(max_length=20, choices=APPROVAL_CHOICES, default='pending')
     manual_confirmation = models.BooleanField(default=False)
+    manual_confirmation_percent = models.IntegerField(null=True, blank=True)
     max_capacity = models.IntegerField(null=True, blank=True)
     advance_payment_required = models.BooleanField(default=False)
+    booking_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cancellation_hours = models.IntegerField(default=1)
     google_calendar_block_enabled = models.BooleanField(default=False)
     resource_assignment = models.CharField(max_length=20, default='manual') # manual or auto
+    
+    # Misc 
+    intro_message = models.TextField(null=True, blank=True)
+    confirmation_message = models.TextField(null=True, blank=True)
     
     timezone = models.CharField(max_length=50, default='Asia/Kolkata')
     created_at = models.DateTimeField(auto_now_add=True)

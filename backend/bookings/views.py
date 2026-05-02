@@ -7,6 +7,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
+from django.core.mail import send_mail
+from django.conf import settings
 import uuid
 
 from .models import Booking, BookingAnswer, Service
@@ -108,6 +110,30 @@ class BookingCreateView(APIView):
                     )
                 except ServiceQuestion.DoesNotExist:
                     pass  # skip invalid question ids
+
+        # Send confirmation email
+        if request.user.email:
+            subject = f"Booking Request Received: {service.title}"
+            message = (
+                f"Hello {request.user.username},\n\n"
+                f"Your booking for '{service.title}' on {booking.slot_date} at {booking.slot_start} has been received.\n"
+                f"Status: {booking.status.upper()}\n\n"
+            )
+            if service.confirmation_message:
+                message += f"{service.confirmation_message}\n\n"
+            
+            message += "Thank you for using our service!"
+            
+            try:
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[request.user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Error sending email: {e}")
 
         return Response(
             {

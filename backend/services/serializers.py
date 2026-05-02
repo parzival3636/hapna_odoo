@@ -39,9 +39,11 @@ class ServiceSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'title', 'description', 'duration_minutes',
             'appointment_type', 'location', 'venue_address', 'is_published',
-            'approval_status', 'manual_confirmation', 'max_capacity',
-            'advance_payment_required', 'google_calendar_block_enabled',
-            'resource_assignment', 'timezone', 'created_at', 'updated_at',
+            'approval_status', 'manual_confirmation', 'manual_confirmation_percent',
+            'max_capacity', 'advance_payment_required', 'booking_fee',
+            'cancellation_hours', 'google_calendar_block_enabled',
+            'resource_assignment', 'intro_message', 'confirmation_message',
+            'timezone', 'created_at', 'updated_at',
             'schedules', 'questions', 'resources'
         ]
         read_only_fields = ['organization', 'approval_status']

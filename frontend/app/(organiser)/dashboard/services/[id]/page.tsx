@@ -26,6 +26,13 @@ interface Service {
   venue_address: string;
   is_published: boolean;
   approval_status: string;
+  manual_confirmation: boolean;
+  manual_confirmation_percent: number | null;
+  advance_payment_required: boolean;
+  booking_fee: number | null;
+  cancellation_hours: number;
+  intro_message: string;
+  confirmation_message: string;
   schedules: any[];
   questions: ServiceQuestion[];
   resources: any[];
@@ -206,7 +213,7 @@ export default function ServiceConfig() {
 
       {/* Tabs */}
       <div className="flex border-b border-[rgba(255,255,255,0.08)] mb-8 overflow-x-auto">
-        {["details", "schedule", "questions", "resources"].map((tab) => (
+        {["details", "schedule", "questions", "resources", "options", "misc"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -523,6 +530,186 @@ export default function ServiceConfig() {
             <p className="mb-4">Resources and Staffing component will go here.</p>
             <p className="text-xs">Assign people or physical assets to this service.</p>
           </div>
+        )}
+
+        {/* ═══════ OPTIONS TAB ═══════ */}
+        {activeTab === "options" && (
+          <form onSubmit={handleUpdate} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+              {/* Left Column */}
+              <div className="space-y-8">
+                {/* Manual Confirmation */}
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-3 cursor-pointer select-none min-w-[160px]">
+                    <span
+                      className={`inline-flex items-center justify-center w-5 h-5 rounded border transition-all ${
+                        service.manual_confirmation
+                          ? "bg-[#7c3aed] border-[#7c3aed]"
+                          : "border-[rgba(255,255,255,0.2)] bg-transparent"
+                      }`}
+                      onClick={() =>
+                        setService({ ...service, manual_confirmation: !service.manual_confirmation })
+                      }
+                    >
+                      {service.manual_confirmation && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="text-sm font-medium text-white">Manual confirmation</span>
+                  </label>
+                  {service.manual_confirmation && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-[#94a3b8]">Upto</span>
+                      <input
+                        type="number"
+                        value={service.manual_confirmation_percent || ""}
+                        onChange={(e) => setService({ ...service, manual_confirmation_percent: parseInt(e.target.value) || null })}
+                        className="auth-input w-20 py-1 px-2 text-center"
+                        placeholder="50"
+                      />
+                      <span className="text-sm text-[#94a3b8]">% of capacity</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Paid Booking */}
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-3 cursor-pointer select-none min-w-[160px]">
+                    <span
+                      className={`inline-flex items-center justify-center w-5 h-5 rounded border transition-all ${
+                        service.advance_payment_required
+                          ? "bg-[#7c3aed] border-[#7c3aed]"
+                          : "border-[rgba(255,255,255,0.2)] bg-transparent"
+                      }`}
+                      onClick={() =>
+                        setService({ ...service, advance_payment_required: !service.advance_payment_required })
+                      }
+                    >
+                      {service.advance_payment_required && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="text-sm font-medium text-white">Paid Booking</span>
+                  </label>
+                  {service.advance_payment_required && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-[#94a3b8]">Booking Fees (Rs</span>
+                      <input
+                        type="number"
+                        value={service.booking_fee || ""}
+                        onChange={(e) => setService({ ...service, booking_fee: parseFloat(e.target.value) || null })}
+                        className="auth-input w-24 py-1 px-2 text-center"
+                        placeholder="200"
+                      />
+                      <span className="text-sm text-[#94a3b8]">Per booking)</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Schedule Type */}
+                <div className="flex items-center gap-6">
+                  <span className="text-sm font-medium text-white min-w-[160px]">Schedule</span>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="radio" name="schedule_type" className="sr-only" checked={true} readOnly />
+                      <span className="w-4 h-4 rounded-full border-2 border-[#7c3aed] bg-[#7c3aed] flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      </span>
+                      <span className="text-sm text-[#cbd5e1]">weekly</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="radio" name="schedule_type" className="sr-only" checked={false} readOnly />
+                      <span className="w-4 h-4 rounded-full border-2 border-[rgba(255,255,255,0.25)] flex items-center justify-center group-hover:border-[rgba(255,255,255,0.4)]">
+                      </span>
+                      <span className="text-sm text-[#cbd5e1]">flexible</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-8">
+                {/* Create Slot */}
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-white min-w-[100px]">Create Slot</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={service.duration_minutes || ""}
+                      onChange={(e) => setService({ ...service, duration_minutes: parseInt(e.target.value) || 0 })}
+                      className="auth-input w-24 py-1 px-2 text-center"
+                    />
+                    <span className="text-sm text-[#94a3b8]">minutes</span>
+                  </div>
+                </div>
+
+                {/* Cancellation */}
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-white min-w-[100px]">Cancellation</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-[#94a3b8]">up to</span>
+                    <input
+                      type="number"
+                      value={service.cancellation_hours || ""}
+                      onChange={(e) => setService({ ...service, cancellation_hours: parseInt(e.target.value) || 0 })}
+                      className="auth-input w-20 py-1 px-2 text-center"
+                    />
+                    <span className="text-sm text-[#94a3b8]">hour(s) before the booking</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-2 rounded-lg bg-[#7c3aed] text-white font-medium hover:bg-[#6d28d9] transition-all"
+              >
+                {saving ? "Saving..." : "Save Options"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ═══════ MISC TAB ═══════ */}
+        {activeTab === "misc" && (
+          <form onSubmit={handleUpdate} className="space-y-8">
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-white">Introduction page message</label>
+              <textarea
+                value={service.intro_message || ""}
+                onChange={(e) => setService({ ...service, intro_message: e.target.value })}
+                className="auth-input min-h-[100px] py-3"
+                placeholder="Schedule your visit today and experience expert care brought right to your doorstep."
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-white">Confirmation page message</label>
+              <textarea
+                value={service.confirmation_message || ""}
+                onChange={(e) => setService({ ...service, confirmation_message: e.target.value })}
+                className="auth-input min-h-[100px] py-3"
+                placeholder="Thank you for your trust we look forward to meeting you"
+              />
+              <p className="text-xs text-[#94a3b8]">This message will be included in the confirmation email sent to the user.</p>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-2 rounded-lg bg-[#7c3aed] text-white font-medium hover:bg-[#6d28d9] transition-all"
+              >
+                {saving ? "Saving..." : "Save Messages"}
+              </button>
+            </div>
+          </form>
         )}
       </div>
     </div>
