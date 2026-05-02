@@ -10,6 +10,7 @@ interface Service {
   appointment_type: string;
   is_published: boolean;
   approval_status: string;
+  share_token: string;
 }
 
 export default function OrganiserServices() {
@@ -18,6 +19,7 @@ export default function OrganiserServices() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadServices();
@@ -63,6 +65,24 @@ export default function OrganiserServices() {
     } finally {
       setCreating(false);
     }
+  }
+
+  async function handleShareCopy(e: React.MouseEvent, service: Service) {
+    e.preventDefault(); // Prevent navigating to the service detail page
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/share/${service.share_token}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = shareUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopiedId(service.id);
+    setTimeout(() => setCopiedId(null), 2000);
   }
 
   return (
@@ -137,21 +157,55 @@ export default function OrganiserServices() {
             <Link
               key={service.id}
               href={`/dashboard/services/${service.id}`}
-              className="glass-card p-6 hover:border-[#7c3aed] transition-all group"
+              className="glass-card p-6 hover:border-[#7c3aed] transition-all group relative"
             >
               <div className="flex justify-between items-start mb-4">
                 <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-[rgba(255,255,255,0.05)] text-[#64748b]`}>
                   {service.appointment_type}
                 </span>
-                <span className={`status-badge ${service.approval_status}`}>
-                  {service.approval_status}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`status-badge ${service.approval_status}`}>
+                    {service.approval_status}
+                  </span>
+                  {service.is_published && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Published
+                    </span>
+                  )}
+                </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2 group-hover:text-[#7c3aed] transition-colors">
+              <h3 className="text-lg font-semibold mb-3 group-hover:text-[#7c3aed] transition-colors">
                 {service.title}
               </h3>
-              <div className="flex items-center gap-2 text-sm text-[#94a3b8]">
-                <span>{service.is_published ? "🟢 Published" : "⚪ Draft"}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-[#94a3b8]">
+                  <span>{service.is_published ? "🟢 Live" : "⚪ Draft"}</span>
+                </div>
+                <button
+                  onClick={(e) => handleShareCopy(e, service)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    copiedId === service.id
+                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                      : "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#64748b] hover:text-[#a78bfa] hover:border-[rgba(124,58,237,0.3)] hover:bg-[rgba(124,58,237,0.06)]"
+                  }`}
+                >
+                  {copiedId === service.id ? (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                      </svg>
+                      Share
+                    </>
+                  )}
+                </button>
               </div>
             </Link>
           ))

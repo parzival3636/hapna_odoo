@@ -40,7 +40,7 @@ class ServiceSerializer(serializers.ModelSerializer):
             'id', 'organization', 'title', 'description', 'duration_minutes',
             'appointment_type', 'location', 'venue_address',
             'online_meeting_provider', 'meeting_auto_create',
-            'is_published',
+            'is_published', 'share_token',
             'approval_status', 'manual_confirmation', 'manual_confirmation_percent',
             'max_capacity', 'advance_payment_required', 'booking_fee',
             'cancellation_hours', 'google_calendar_block_enabled',

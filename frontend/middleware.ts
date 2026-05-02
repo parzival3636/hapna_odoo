@@ -25,8 +25,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow public landing page
-  if (pathname === "/" || pathname.startsWith("/landing")) {
+  // Allow public landing page and share links
+  if (pathname === "/" || pathname.startsWith("/landing") || pathname.startsWith("/share") || pathname.startsWith("/book")) {
     return NextResponse.next();
   }
 

@@ -28,6 +28,7 @@ interface Service {
   online_meeting_provider: string;
   meeting_auto_create: boolean;
   is_published: boolean;
+  share_token: string;
   approval_status: string;
   manual_confirmation: boolean;
   manual_confirmation_percent: number | null;
@@ -77,6 +78,44 @@ export default function ServiceConfig() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("details");
   const [saving, setSaving] = useState(false);
+
+  // ── Share modal state ──────────────────────────────
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function getShareUrl() {
+    if (typeof window === "undefined" || !service?.share_token) return "";
+    return `${window.location.origin}/share/${service.share_token}`;
+  }
+
+  async function handleCopyLink() {
+    const url = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Fallback
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  }
+
+  async function handleRegenerateToken() {
+    if (!confirm("This will invalidate the current share link. Continue?")) return;
+    try {
+      const data = await fetchApi(`/services/${id}/regenerate-token/`, { method: "POST" });
+      setService((prev) => prev ? { ...prev, share_token: data.share_token } : prev);
+    } catch {
+      alert("Failed to regenerate link");
+    }
+  }
 
   // ── Question‑tab state ─────────────────────────────
   const [questions, setQuestions] = useState<ServiceQuestion[]>([]);
@@ -249,6 +288,90 @@ export default function ServiceConfig() {
 
   return (
     <div className="p-8 max-w-5xl">
+      {/* ── Share Modal ── */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowShareModal(false)}>
+          <div
+            className="w-full max-w-lg mx-4 rounded-2xl bg-[#14141f] border border-[rgba(255,255,255,0.1)] shadow-[0_25px_60px_rgba(0,0,0,0.5)] p-0 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(255,255,255,0.08)]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] flex items-center justify-center shadow-lg">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.07-9.07l4.5-4.5a4.5 4.5 0 016.364 6.364l-1.757 1.757" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Share Booking Link</h3>
+                  <p className="text-xs text-[#64748b]">Anyone with this link can book</p>
+                </div>
+              </div>
+              <button onClick={() => setShowShareModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#64748b] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all">
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-5 space-y-4">
+              {/* Info banner */}
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-[rgba(124,58,237,0.06)] border border-[rgba(124,58,237,0.15)]">
+                <span className="text-sm mt-0.5">💡</span>
+                <p className="text-xs text-[#94a3b8] leading-relaxed">
+                  Share this link for <strong className="text-[#a78bfa]">early access booking</strong>. Recipients can book even if the service isn't published yet.
+                </p>
+              </div>
+
+              {/* Link box */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] text-sm text-[#94a3b8] font-mono truncate select-all">
+                  {getShareUrl()}
+                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className={`px-4 py-3 rounded-xl font-medium text-sm transition-all flex items-center gap-2 whitespace-nowrap ${
+                    copied
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "bg-[#7c3aed] text-white hover:bg-[#6d28d9] shadow-[0_0_15px_rgba(124,58,237,0.3)]"
+                  }`}
+                >
+                  {copied ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                      </svg>
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Regenerate link */}
+              <div className="flex items-center justify-between pt-2 border-t border-[rgba(255,255,255,0.06)]">
+                <p className="text-xs text-[#4b5563]">Need to revoke access? Generate a new link to invalidate the old one.</p>
+                <button
+                  onClick={handleRegenerateToken}
+                  className="text-xs text-[#64748b] hover:text-amber-400 transition-colors font-medium flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                  </svg>
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
@@ -257,10 +380,25 @@ export default function ServiceConfig() {
             <span className={`status-badge ${service.approval_status}`}>
               {service.approval_status}
             </span>
+            {service.is_published && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-bold uppercase tracking-wider animate-[fadeIn_0.3s_ease]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Published
+              </span>
+            )}
           </div>
           <p className="text-[#94a3b8]">Configure your service listing and booking rules</p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="px-4 py-2 rounded-lg font-medium transition-all bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-[#94a3b8] hover:text-white hover:border-[rgba(124,58,237,0.4)] hover:bg-[rgba(124,58,237,0.08)] flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+            </svg>
+            Share
+          </button>
           <button
             onClick={togglePublish}
             disabled={service.approval_status !== "approved"}

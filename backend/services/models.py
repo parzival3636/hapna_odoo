@@ -1,4 +1,5 @@
 import uuid
+import secrets
 from django.db import models
 from django.contrib.auth import get_user_model
 from users.models import Organization
@@ -35,6 +36,7 @@ class Service(models.Model):
     
     # Booking Rules
     is_published = models.BooleanField(default=False)
+    share_token = models.CharField(max_length=64, unique=True, null=True, blank=True)
     approval_status = models.CharField(max_length=20, choices=APPROVAL_CHOICES, default='pending')
     manual_confirmation = models.BooleanField(default=False)
     manual_confirmation_percent = models.IntegerField(null=True, blank=True)
@@ -60,6 +62,11 @@ class Service(models.Model):
     timezone = models.CharField(max_length=50, default='Asia/Kolkata')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.share_token:
+            self.share_token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

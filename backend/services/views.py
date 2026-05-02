@@ -80,6 +80,33 @@ class ServiceViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(service)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny], url_path='shared/(?P<token>[^/.]+)')
+    def share_by_token(self, request, token=None):
+        """
+        GET /api/services/shared/<token>/
+        Public endpoint: returns the service matching the share token.
+        Bypasses is_published — anyone with the link can book.
+        """
+        try:
+            service = Service.objects.get(share_token=token)
+        except Service.DoesNotExist:
+            return Response({'error': True, 'code': 'NOT_FOUND', 'message': 'Invalid or expired share link'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.get_serializer(service)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='regenerate-token')
+    def regenerate_share_token(self, request, pk=None):
+        """
+        POST /api/services/<id>/regenerate-token/
+        Generates a new share token, invalidating the old link.
+        """
+        import secrets
+        service = self.get_object()
+        service.share_token = secrets.token_urlsafe(32)
+        service.save(update_fields=['share_token'])
+        return Response({'share_token': service.share_token})
+
     # ── Helper: compute valid date range for a service ─────────
     def _get_valid_dates(self, service):
         """Return list of valid booking dates based on service schedule config."""
