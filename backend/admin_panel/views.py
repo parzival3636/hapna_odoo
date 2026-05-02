@@ -4,7 +4,11 @@ from django.db.models import Count, Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from bookings.models import UserProfile, Booking, Service
+from django.contrib.auth import get_user_model
+from bookings.models import Booking
+from services.models import Service
+
+User = get_user_model()
 
 
 class IsAdmin:
@@ -26,9 +30,9 @@ class AdminStatsView(APIView):
         month_start = today.replace(day=1)
 
         return Response({
-            'total_users': UserProfile.objects.count(),
-            'total_organisers': UserProfile.objects.filter(role='organiser').count(),
-            'total_customers': UserProfile.objects.filter(role='customer').count(),
+            'total_users': User.objects.count(),
+            'total_organisers': User.objects.filter(role='organiser').count(),
+            'total_customers': User.objects.filter(role='customer').count(),
             'total_bookings_today': Booking.objects.filter(
                 created_at__date=today
             ).exclude(status='cancelled').count(),
@@ -54,7 +58,7 @@ class AdminUserListView(APIView):
         page = int(request.query_params.get('page', 1))
         page_size = int(request.query_params.get('page_size', 20))
 
-        users = UserProfile.objects.all().order_by('-created_at')
+        users = User.objects.all().order_by('-date_joined')
 
         if role_filter:
             users = users.filter(role=role_filter)
@@ -68,15 +72,15 @@ class AdminUserListView(APIView):
 
         results = []
         for u in users:
-            booking_count = Booking.objects.filter(customer_id=u.user_id).count()
+            booking_count = Booking.objects.filter(customer=u).count()
             results.append({
                 'id': str(u.id),
-                'user_id': u.user_id,
+                'username': u.username,
                 'role': u.role,
                 'is_active': u.is_active,
                 'timezone': u.timezone,
                 'phone_number': u.phone_number,
-                'created_at': u.created_at.isoformat() if u.created_at else None,
+                'created_at': u.date_joined.isoformat() if u.date_joined else None,
                 'total_bookings': booking_count,
             })
 
@@ -96,8 +100,8 @@ class AdminUserActivateView(APIView):
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         try:
-            user = UserProfile.objects.get(id=pk)
-        except UserProfile.DoesNotExist:
+            user = User.objects.get(id=pk)
+        except User.DoesNotExist:
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
         user.is_active = True
@@ -113,12 +117,12 @@ class AdminUserDeactivateView(APIView):
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         try:
-            user = UserProfile.objects.get(id=pk)
-        except UserProfile.DoesNotExist:
+            user = User.objects.get(id=pk)
+        except User.DoesNotExist:
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
         # Cannot deactivate yourself
-        if user.user_id == request.user.user_id:
+        if user.id == request.user.id:
             return Response({
                 'error': True, 'code': 'FORBIDDEN',
                 'message': 'Cannot deactivate your own account',
@@ -144,12 +148,12 @@ class AdminUserRoleView(APIView):
             }, status=400)
 
         try:
-            user = UserProfile.objects.get(id=pk)
-        except UserProfile.DoesNotExist:
+            user = User.objects.get(id=pk)
+        except User.DoesNotExist:
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
         # Cannot change own role
-        if user.user_id == request.user.user_id:
+        if user.id == request.user.id:
             return Response({
                 'error': True, 'code': 'FORBIDDEN',
                 'message': 'Cannot change your own role',
@@ -157,7 +161,7 @@ class AdminUserRoleView(APIView):
 
         # Prevent removing last admin
         if user.role == 'admin' and new_role != 'admin':
-            admin_count = UserProfile.objects.filter(role='admin').count()
+            admin_count = User.objects.filter(role='admin').count()
             if admin_count <= 1:
                 return Response({
                     'error': True, 'code': 'FORBIDDEN',
@@ -167,3 +171,99 @@ class AdminUserRoleView(APIView):
         user.role = new_role
         user.save()
         return Response({'id': str(user.id), 'role': new_role})
+
+
+from users.models import Organization
+from users.serializers import OrganizationSerializer
+
+class AdminOrganizationView(APIView):
+    """GET /api/admin/organizations/ — List organizations.
+       POST /api/admin/organizations/ — Create an organization."""
+
+    def get(self, request):
+        if not IsAdmin.check(request.user):
+            return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
+        orgs = Organization.objects.all()
+        serializer = OrganizationSerializer(orgs, many=True)
+        return Response({'results': serializer.data})
+
+    def post(self, request):
+        if not IsAdmin.check(request.user):
+            return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
+
+        serializer = OrganizationSerializer(data=request.data)
+        if serializer.is_valid():
+            org = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AdminApproveRoleView(APIView):
+    """PATCH /api/admin/users/<id>/approve-role/ — Approve pending organiser."""
+
+    def patch(self, request, pk):
+        if not IsAdmin.check(request.user):
+            return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
+
+        try:
+            user = User.objects.get(id=pk)
+        except User.DoesNotExist:
+            return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
+
+        if user.role != 'pending_organiser':
+            return Response({'error': True, 'message': 'User is not pending approval'}, status=400)
+
+        user.role = 'organiser'
+        user.save()
+        return Response({'id': str(user.id), 'role': user.role, 'message': 'Organiser role approved'})
+
+class AdminPendingServiceListView(APIView):
+    """GET /api/admin/pending-services/ — View all pending services."""
+
+    def get(self, request):
+        if not IsAdmin.check(request.user):
+            return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
+
+        services = Service.objects.filter(approval_status='pending')
+        results = [
+            {
+                'id': str(s.id),
+                'title': s.title,
+                'organization': s.organization.name if s.organization else 'Unknown',
+                'created_at': s.created_at.isoformat()
+            } for s in services
+        ]
+        return Response({'results': results})
+
+class AdminServiceApproveView(APIView):
+    """PATCH /api/admin/services/<id>/approve/ — Approve a service listing."""
+
+    def patch(self, request, pk):
+        if not IsAdmin.check(request.user):
+            return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
+
+        try:
+            service = Service.objects.get(id=pk)
+        except Service.DoesNotExist:
+            return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
+
+        service.approval_status = 'approved'
+        service.save()
+        return Response({'id': str(service.id), 'approval_status': 'approved'})
+
+class AdminServiceRejectView(APIView):
+    """PATCH /api/admin/services/<id>/reject/ — Reject a service listing."""
+
+    def patch(self, request, pk):
+        if not IsAdmin.check(request.user):
+            return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
+
+        try:
+            service = Service.objects.get(id=pk)
+        except Service.DoesNotExist:
+            return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
+
+        reason = request.data.get('reason', '')
+        service.approval_status = 'rejected'
+        # Can store reason in description or a new field, for now just reject
+        service.save()
+        return Response({'id': str(service.id), 'approval_status': 'rejected', 'reason': reason})

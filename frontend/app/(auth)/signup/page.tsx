@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { registerUser } from "@/app/actions/auth";
 
 type Role = "customer" | "organiser" | "admin";
 
@@ -47,35 +47,35 @@ export default function SignupPage() {
     return Object.keys(errors).length === 0;
   }
 
-  async function handleSignup(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     if (!validate()) return;
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: role,
-        },
-      },
-    });
+    const formData = new FormData(e.currentTarget);
+    const result = await registerUser(formData, role);
 
-    if (authError) {
-      if (authError.message.includes("already registered")) {
-        setError("An account with this email already exists");
-      } else {
-        setError(authError.message);
-      }
+    if (result.error) {
+      setError(result.error);
       setLoading(false);
       return;
     }
 
-    router.push(`/verify-otp?email=${encodeURIComponent(email)}&type=signup`);
+    if (result.success) {
+      // Set cookie on client side to ensure immediate availability for fetchApi
+      import("js-cookie").then((Cookies) => {
+        Cookies.default.set("access_token", result.token, { path: "/" });
+      });
+
+      if (role === 'organiser') {
+        router.push('/join-organization');
+      } else if (role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/services');
+      }
+    }
   }
 
   const roleOptions = [
@@ -134,6 +134,7 @@ export default function SignupPage() {
         <div>
           <label className="block text-sm font-medium text-[#94a3b8] mb-2">Full Name</label>
           <input
+            name="fullName"
             id="signup-name"
             type="text"
             value={fullName}
@@ -149,6 +150,7 @@ export default function SignupPage() {
         <div>
           <label className="block text-sm font-medium text-[#94a3b8] mb-2">Email</label>
           <input
+            name="email"
             id="signup-email"
             type="email"
             value={email}
@@ -165,6 +167,7 @@ export default function SignupPage() {
           <label className="block text-sm font-medium text-[#94a3b8] mb-2">Password</label>
           <div className="relative">
             <input
+              name="password"
               id="signup-password"
               type={showPassword ? "text" : "password"}
               value={password}

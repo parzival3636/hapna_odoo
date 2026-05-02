@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import Booking, BookingAnswer, ServiceQuestion, CustomerProfile, Service, Resource
+from .models import Booking, BookingAnswer, Waitlist, Payment, NoShowModelFeature
+from services.models import ServiceQuestion, Service, Resource
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 
 class BookingAnswerSerializer(serializers.Serializer):
@@ -34,11 +37,11 @@ class BookingListSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField()
 
     def get_customer_name(self, obj):
-        profile = obj.customer_profile
-        return profile.full_name if profile else obj.customer_id
+        customer = obj.customer
+        return customer.get_full_name() or customer.username
 
     def get_customer_email(self, obj):
-        return obj.customer_id  # user_id is the Supabase UID
+        return obj.customer.email
 
     def get_service_title(self, obj):
         service = obj.service
@@ -82,8 +85,8 @@ class CalendarEventSerializer(serializers.Serializer):
     }
 
     def get_title(self, obj):
-        profile = obj.customer_profile
-        name = profile.full_name if profile else 'Customer'
+        customer = obj.customer
+        name = customer.get_full_name() or customer.username
         service = obj.service
         svc_title = service.title if service else 'Service'
         return f"{name} — {svc_title}"

@@ -3,8 +3,7 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import { getUserRole, ROLE_DASHBOARDS } from "@/lib/utils/get-role";
+import { loginUser } from "@/app/actions/auth";
 
 function LoginContent() {
   const router = useRouter();
@@ -18,43 +17,38 @@ function LoginContent() {
   const successMessage = searchParams.get("message");
   const redirectPath = searchParams.get("redirect");
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const supabase = createClient();
+    const formData = new FormData(e.currentTarget);
+    const result = await loginUser(formData);
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError) {
-      setError("Invalid email or password");
+    if (result.error) {
+      setError(result.error);
       setLoading(false);
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      if (!user.email_confirmed_at) {
-        await supabase.auth.resend({ type: "signup", email });
-        router.push(`/verify-otp?email=${encodeURIComponent(email)}&type=signup`);
-        return;
-      }
+    if (result.success) {
+      // Set cookie on client side to ensure immediate availability for fetchApi
+      import("js-cookie").then((Cookies) => {
+        Cookies.default.set("access_token", result.token, { path: "/" });
+      });
 
       if (redirectPath && redirectPath !== "/") {
         router.push(redirectPath);
-        return;
+      } else {
+        router.refresh();
+        if (result.role === 'admin') {
+          router.push('/admin');
+        } else if (result.role === 'organiser') {
+          router.push('/dashboard/services');
+        } else {
+          router.push('/services');
+        }
       }
-
-      // Use centralized role getter
-      const { role } = await getUserRole(supabase);
-      router.push(ROLE_DASHBOARDS[role] || "/services");
     }
   }
 
@@ -79,6 +73,7 @@ function LoginContent() {
         <div>
           <label className="block text-sm font-medium text-[#94a3b8] mb-2">Email</label>
           <input
+            name="email"
             id="login-email"
             type="email"
             value={email}
@@ -94,6 +89,7 @@ function LoginContent() {
           <label className="block text-sm font-medium text-[#94a3b8] mb-2">Password</label>
           <div className="relative">
             <input
+              name="password"
               id="login-password"
               type={showPassword ? "text" : "password"}
               value={password}
@@ -123,7 +119,7 @@ function LoginContent() {
           disabled={loading}
           className={`auth-button ${loading ? "loading" : ""}`}
         >
-          Sign In
+          {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
 

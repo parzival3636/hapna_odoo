@@ -7,8 +7,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
+import uuid
 
-from .models import Booking, Service
+from .models import Booking, BookingAnswer, Service
+from services.models import ServiceQuestion
 from .serializers import (
     BookingListSerializer, BookingDetailSerializer,
     CalendarEventSerializer, StatusUpdateSerializer, RejectSerializer,
@@ -26,8 +28,96 @@ class IsOrganiser:
 def get_organiser_services(user):
     """Get all service IDs belonging to this organiser."""
     return Service.objects.filter(
-        organiser_id=user.user_id
+        organization=user.organization
     ).values_list('id', flat=True)
+
+
+class BookingCreateView(APIView):
+    """
+    POST /api/bookings/
+    Customer creates a new booking with optional intake question answers.
+    """
+
+    def post(self, request):
+        data = request.data
+        service_id = data.get('service_id')
+        if not service_id:
+            return Response(
+                {'error': True, 'message': 'service_id is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            service = Service.objects.get(id=service_id)
+        except Service.DoesNotExist:
+            return Response(
+                {'error': True, 'message': 'Service not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Validate required questions
+        answers_data = data.get('answers', [])
+        required_questions = ServiceQuestion.objects.filter(
+            service=service, is_required=True
+        )
+        answered_ids = {a.get('question_id') for a in answers_data}
+        for rq in required_questions:
+            if str(rq.id) not in answered_ids:
+                return Response(
+                    {'error': True, 'message': f'Required question not answered: "{rq.question_text}"'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Check capacity
+        if service.max_capacity:
+            booked = Booking.objects.filter(
+                service=service,
+                slot_date=data.get('slot_date'),
+                slot_start=data.get('slot_start'),
+                status__in=['pending', 'confirmed'],
+            ).count()
+            if booked >= service.max_capacity:
+                return Response(
+                    {'error': True, 'code': 'CAPACITY_EXCEEDED', 'message': 'This slot is full'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+        # Create booking
+        booking = Booking.objects.create(
+            service=service,
+            customer=request.user,
+            slot_date=data.get('slot_date'),
+            slot_start=data.get('slot_start'),
+            slot_end=data.get('slot_end', data.get('slot_start')),
+            booking_channel=data.get('booking_channel', 'web'),
+            status='pending' if service.manual_confirmation else 'confirmed',
+            confirmation_token=uuid.uuid4().hex[:12],
+        )
+
+        # Save answers
+        for ans in answers_data:
+            qid = ans.get('question_id')
+            text = ans.get('answer_text', '')
+            if qid and text:
+                try:
+                    question = ServiceQuestion.objects.get(id=qid, service=service)
+                    BookingAnswer.objects.create(
+                        booking=booking,
+                        question=question,
+                        answer_text=text,
+                    )
+                except ServiceQuestion.DoesNotExist:
+                    pass  # skip invalid question ids
+
+        return Response(
+            {
+                'id': str(booking.id),
+                'status': booking.status,
+                'confirmation_token': booking.confirmation_token,
+                'message': 'Booking created successfully',
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class BookingListView(APIView):
@@ -109,7 +199,7 @@ class BookingDetailView(APIView):
         if not service:
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
-        if request.user.role == 'organiser' and service.organiser_id != request.user.user_id:
+        if request.user.role == 'organiser' and service.organization != request.user.organization:
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         serializer = BookingDetailSerializer(booking)
@@ -130,7 +220,7 @@ class BookingConfirmView(APIView):
 
         # Ownership
         service = booking.service
-        if request.user.role == 'organiser' and service.organiser_id != request.user.user_id:
+        if request.user.role == 'organiser' and service.organization != request.user.organization:
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         # Validate transition
@@ -188,7 +278,7 @@ class BookingRejectView(APIView):
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
         service = booking.service
-        if request.user.role == 'organiser' and service.organiser_id != request.user.user_id:
+        if request.user.role == 'organiser' and service.organization != request.user.organization:
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         if booking.status in ('cancelled', 'completed'):
