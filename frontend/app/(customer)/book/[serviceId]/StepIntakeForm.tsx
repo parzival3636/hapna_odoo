@@ -34,6 +34,7 @@ export default function StepIntakeForm({ service, state, update, onBack }: Props
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const holdCreatedAt = useRef(Date.now());
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
   // Layer 2 — Countdown timer
   useEffect(() => {
@@ -72,6 +73,40 @@ export default function StepIntakeForm({ service, state, update, onBack }: Props
     }, HEARTBEAT_MS);
     return () => { if (heartbeatRef.current) clearInterval(heartbeatRef.current); };
   }, [state.holdId]);
+
+  // Layer 3/B5 — Conflict Warning: check if user already has an appointment at this time
+  useEffect(() => {
+    async function checkConflicts() {
+      if (!state.selectedDate || !state.selectedSlot) return;
+      try {
+        const bookings = await customerApi(`/bookings/mine/?date=${state.selectedDate}`, {
+          requireAuth: true,
+        });
+        
+        const overlap = bookings.find((b: any) => {
+          // Exclude cancelled/rescheduled from conflict check
+          if (["cancelled", "rescheduled"].includes(b.status)) return false;
+          
+          const s1 = b.slot_start.slice(0, 5);
+          const e1 = b.slot_end.slice(0, 5);
+          const s2 = state.selectedSlot!.start;
+          const e2 = state.selectedSlot!.end;
+          
+          // Check for time overlap
+          return (s1 < e2 && s2 < e1);
+        });
+
+        if (overlap) {
+          setConflictWarning(`⚠️ You already have a booking (${overlap.service_title || 'another service'}) overlapping this time slot (${overlap.slot_start.slice(0,5)} - ${overlap.slot_end.slice(0,5)}).`);
+        } else {
+          setConflictWarning(null);
+        }
+      } catch (err) {
+        // ignore errors for conflict check
+      }
+    }
+    checkConflicts();
+  }, [state.selectedDate, state.selectedSlot]);
 
   function updateAnswer(qId: string, val: string) {
     setAnswers((prev) => ({ ...prev, [qId]: val }));
@@ -216,6 +251,18 @@ export default function StepIntakeForm({ service, state, update, onBack }: Props
           >
             ← Go back and pick a slot
           </button>
+        </div>
+      )}
+
+      {/* Pre-Booking Conflict Warning */}
+      {conflictWarning && (
+        <div className="mb-6 p-4 rounded-xl bg-[rgba(251,191,36,0.1)] border border-[rgba(251,191,36,0.3)]">
+          <p className="text-[#fbbf24] font-medium text-sm mb-2">
+            {conflictWarning}
+          </p>
+          <p className="text-[#94a3b8] text-xs">
+            You can still proceed if this is intentional, but please ensure you can attend both.
+          </p>
         </div>
       )}
 

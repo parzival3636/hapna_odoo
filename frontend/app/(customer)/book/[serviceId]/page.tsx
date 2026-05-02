@@ -7,6 +7,7 @@ import { customerApi } from "@/lib/customer-api";
 import StepDatePicker from "./StepDatePicker";
 import StepSlotGrid from "./StepSlotGrid";
 import StepIntakeForm from "./StepIntakeForm";
+import StepPayment from "./StepPayment";
 import StepConfirmation from "./StepConfirmation";
 
 interface ServiceDetail {
@@ -39,12 +40,13 @@ export interface BookingState {
   bookingData: any | null;
 }
 
-const STEP_LABELS = ["Select Date", "Pick Slot", "Details", "Confirmed"];
+const BASE_STEP_LABELS = ["Select Date", "Pick Slot", "Details", "Confirmed"];
 
 export default function BookingWizardPage() {
   const { serviceId } = useParams();
   const searchParams = useSearchParams();
   const preDate = searchParams.get("date");
+  const preResource = searchParams.get("resource");
 
   const [service, setService] = useState<ServiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function BookingWizardPage() {
   const [state, setState] = useState<BookingState>({
     step: 0,
     serviceId: serviceId as string,
-    resourceId: null,
+    resourceId: preResource || null,
     selectedDate: preDate || null,
     selectedSlot: null,
     capacity: 1,
@@ -76,7 +78,9 @@ export default function BookingWizardPage() {
           requireAuth: false,
         });
         setService(data);
-        if (data.resources?.length > 0) {
+        if (preResource && data.resources?.some((r: any) => r.id === preResource)) {
+          // preResource is valid
+        } else if (data.resources?.length > 0) {
           update({ resourceId: data.resources[0].id });
         }
         if (preDate) update({ step: 1 });
@@ -99,6 +103,13 @@ export default function BookingWizardPage() {
       }
     };
   }, [state.holdId]);
+
+  const stepLabels = service?.advance_payment_required
+    ? ["Select Date", "Pick Slot", "Details", "Payment", "Confirmed"]
+    : BASE_STEP_LABELS;
+
+  // We need to map the Confirmation component's logical step based on if payment is present
+  const confirmationStep = service?.advance_payment_required ? 4 : 3;
 
   if (loading)
     return (
@@ -134,7 +145,7 @@ export default function BookingWizardPage() {
       {/* Step Indicator */}
       <div className="max-w-3xl mx-auto px-6 pt-8 pb-4">
         <div className="flex items-center gap-2">
-          {STEP_LABELS.map((label, i) => (
+          {stepLabels.map((label, i) => (
             <div key={i} className="flex items-center gap-2 flex-1">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
@@ -154,7 +165,7 @@ export default function BookingWizardPage() {
               >
                 {label}
               </span>
-              {i < STEP_LABELS.length - 1 && (
+              {i < stepLabels.length - 1 && (
                 <div
                   className={`flex-1 h-px ${
                     i < state.step
@@ -223,7 +234,15 @@ export default function BookingWizardPage() {
             onBack={() => update({ step: 1 })}
           />
         )}
-        {state.step === 3 && state.bookingData && (
+        {state.step === 3 && service.advance_payment_required && (
+          <StepPayment
+            service={service}
+            state={state}
+            update={update}
+            onBack={() => update({ step: 2 })}
+          />
+        )}
+        {state.step === confirmationStep && state.bookingData && (
           <StepConfirmation
             bookingData={state.bookingData}
             service={service}
