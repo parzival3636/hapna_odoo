@@ -91,7 +91,7 @@ def send_booking_confirmation(self, booking_id):
         ics = _generate_ics(booking)
         service = booking.service
         _send_email(
-            to=booking.customer_id,
+            to=booking.customer.email,
             subject=f"Booking Confirmed — {service.title if service else 'Appointment'}",
             html_body=body,
             ics_bytes=ics,
@@ -116,7 +116,7 @@ def send_booking_reserved(self, booking_id):
         <p>Reference: {booking.confirmation_token}</p>
         """
         _send_email(
-            to=booking.customer_id,
+            to=booking.customer.email,
             subject=f"Booking Request — {service.title if service else 'Appointment'}",
             html_body=body,
         )
@@ -137,7 +137,7 @@ def send_organiser_new_booking(self, booking_id):
         body = f"""
         <h2>New Booking Received</h2>
         <p><strong>Service:</strong> {service.title}</p>
-        <p><strong>Customer:</strong> {booking.customer_id}</p>
+        <p><strong>Customer:</strong> {booking.customer.email}</p>
         <p><strong>Date:</strong> {booking.slot_date} at {booking.slot_start}</p>
         <p><strong>Channel:</strong> {booking.booking_channel}</p>
         <p><strong>Status:</strong> {booking.status}</p>
@@ -145,11 +145,13 @@ def send_organiser_new_booking(self, booking_id):
             <a href="{frontend_url}/dashboard/bookings">View in Dashboard</a>
         </p>
         """
-        _send_email(
-            to=service.organiser_id,
-            subject=f"New Booking — {service.title}",
-            html_body=body,
-        )
+        organiser = service.organization.members.filter(role='organiser').first()
+        if organiser and organiser.email:
+            _send_email(
+                to=organiser.email,
+                subject=f"New Booking — {service.title}",
+                html_body=body,
+            )
     except Exception as e:
         self.retry(exc=e)
 
@@ -163,7 +165,7 @@ def send_booking_approved(self, booking_id):
         ics = _generate_ics(booking)
         service = booking.service
         _send_email(
-            to=booking.customer_id,
+            to=booking.customer.email,
             subject=f"Booking Approved — {service.title if service else 'Appointment'}",
             html_body=body,
             ics_bytes=ics,
@@ -188,7 +190,7 @@ def send_booking_rejected(self, booking_id, reason=''):
         <p><a href="{frontend_url}/services/{service.id if service else ''}">Book Again</a></p>
         """
         _send_email(
-            to=booking.customer_id,
+            to=booking.customer.email,
             subject=f"Booking Not Approved — {service.title if service else 'Appointment'}",
             html_body=body,
         )
@@ -209,7 +211,7 @@ def send_cancellation(self, booking_id):
         <p>Reference: {booking.confirmation_token}</p>
         """
         _send_email(
-            to=booking.customer_id,
+            to=booking.customer.email,
             subject=f"Booking Cancelled — {service.title if service else 'Appointment'}",
             html_body=body,
         )
@@ -236,7 +238,7 @@ def send_waitlist_notification(self, waitlist_id):
         <p><small>This link expires in 30 minutes.</small></p>
         """
         _send_email(
-            to=entry.customer_id,
+            to=entry.customer.email,
             subject="A slot opened up — claim it now!",
             html_body=body,
         )
@@ -260,8 +262,34 @@ def run_no_show_prediction(self, booking_id):
 
 
 # ============================================================
-# WAITLIST CHAIN
+# WAITLIST CHAIN & RESOURCES
 # ============================================================
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=10)
+def send_resource_assignment_notification(self, booking_id):
+    """Notify assigned human resource about a booking."""
+    try:
+        booking = _get_booking(booking_id)
+        if not booking.resource or not booking.resource.user or not booking.resource.user.email:
+            return
+
+        service = booking.service
+        body = f"""
+        <h2>New Appointment Assigned to You</h2>
+        <p>You have been assigned to a new appointment.</p>
+        <p><strong>Service:</strong> {service.title if service else 'Appointment'}</p>
+        <p><strong>Date:</strong> {booking.slot_date}</p>
+        <p><strong>Time:</strong> {booking.slot_start} - {booking.slot_end}</p>
+        <p><strong>Customer:</strong> {booking.customer.get_full_name() or booking.customer.username}</p>
+        """
+        _send_email(
+            to=booking.resource.user.email,
+            subject=f"New Assignment — {service.title if service else 'Appointment'}",
+            html_body=body,
+        )
+    except Exception as e:
+        self.retry(exc=e)
+
 
 @shared_task
 def check_waitlist_for_slot(service_id, slot_date, slot_start):
@@ -308,7 +336,7 @@ def check_waitlist_expiry(waitlist_id):
         service_id=entry.service_id,
         slot_date=entry.slot_date,
         slot_start=entry.slot_start,
-        customer_id=entry.customer_id,
+        customer=entry.customer,
         status__in=['pending', 'confirmed'],
     ).exists()
 
@@ -375,7 +403,7 @@ def send_appointment_reminders():
             """
             try:
                 _send_email(
-                    to=booking.customer_id,
+                    to=booking.customer.email,
                     subject=f"Reminder: {service.title if service else 'Appointment'} tomorrow",
                     html_body=body,
                 )

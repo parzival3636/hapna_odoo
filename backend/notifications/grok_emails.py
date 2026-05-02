@@ -24,12 +24,12 @@ def generate_email_body(booking):
     Returns HTML string. Raises on failure (caller handles fallback).
     """
     service = booking.service
-    customer = booking.customer_profile
+    customer = booking.customer
 
     prompt = f"""Write a warm, professional 3-paragraph booking confirmation email in HTML.
 
 Service: {service.title if service else 'Appointment'}
-Customer: {customer.full_name if customer else 'Customer'}
+Customer: {customer.get_full_name() or customer.username if customer else 'Customer'}
 Date: {booking.slot_date}
 Time: {booking.slot_start} - {booking.slot_end}
 Location: {service.venue_address or service.location or 'Online' if service else 'TBD'}

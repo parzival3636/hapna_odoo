@@ -26,7 +26,7 @@ class IsOrganiser:
 def get_organiser_services(user):
     """Get all service IDs belonging to this organiser."""
     return Service.objects.filter(
-        organiser_id=user.user_id
+        organization=user.organization
     ).values_list('id', flat=True)
 
 
@@ -109,7 +109,7 @@ class BookingDetailView(APIView):
         if not service:
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
-        if request.user.role == 'organiser' and service.organiser_id != request.user.user_id:
+        if request.user.role == 'organiser' and service.organization != request.user.organization:
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         serializer = BookingDetailSerializer(booking)
@@ -130,7 +130,7 @@ class BookingConfirmView(APIView):
 
         # Ownership
         service = booking.service
-        if request.user.role == 'organiser' and service.organiser_id != request.user.user_id:
+        if request.user.role == 'organiser' and service.organization != request.user.organization:
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         # Validate transition
@@ -188,7 +188,7 @@ class BookingRejectView(APIView):
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
         service = booking.service
-        if request.user.role == 'organiser' and service.organiser_id != request.user.user_id:
+        if request.user.role == 'organiser' and service.organization != request.user.organization:
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         if booking.status in ('cancelled', 'completed'):

@@ -14,7 +14,10 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.auth',
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
+    'users',
+    'services',
     'bookings',
     'reports',
     'admin_panel',
@@ -25,7 +28,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'middleware.supabase_auth.SupabaseAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -42,7 +44,7 @@ DATABASES = {
 # --- DRF ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'middleware.supabase_auth.SupabaseAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -86,9 +88,6 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # --- External API keys ---
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
-SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
 XAI_API_KEY = os.getenv('XAI_API_KEY')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
@@ -97,3 +96,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
+
+AUTH_USER_MODEL = 'users.User'
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}

@@ -10,7 +10,7 @@ from bookings.models import Booking, Service
 def get_organiser_services(user):
     if user.role == 'admin':
         return Service.objects.values_list('id', flat=True)
-    return Service.objects.filter(organiser_id=user.user_id).values_list('id', flat=True)
+    return Service.objects.filter(organization=user.organization).values_list('id', flat=True)
 
 
 class ReportsSummaryView(APIView):
@@ -65,7 +65,7 @@ class ReportsSummaryView(APIView):
             {
                 'id': str(b.id),
                 'service_title': b.service.title if b.service else '',
-                'customer_name': b.customer_profile.full_name if b.customer_profile else b.customer_id,
+                'customer_name': b.customer.get_full_name() or b.customer.username,
                 'slot_date': str(b.slot_date),
                 'slot_start': str(b.slot_start),
                 'status': b.status,
@@ -194,7 +194,7 @@ class NoShowRiskView(APIView):
 
             results.append({
                 'id': str(b.id),
-                'customer_name': b.customer_profile.full_name if b.customer_profile else b.customer_id,
+                'customer_name': b.customer.get_full_name() or b.customer.username,
                 'service_title': b.service.title if b.service else '',
                 'slot_date': str(b.slot_date),
                 'slot_start': str(b.slot_start),
