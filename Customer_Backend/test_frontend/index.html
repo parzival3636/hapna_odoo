@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Customer Backend — API Tester</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0f0f13;color:#e2e8f0;min-height:100vh}
+header{background:#1a1a2e;padding:18px 32px;border-bottom:1px solid #2d2d44;display:flex;align-items:center;gap:16px}
+header h1{font-size:1.1rem;font-weight:600;color:#a78bfa}
+.token-bar{display:flex;gap:8px;margin-left:auto;flex:1;max-width:560px}
+.token-bar input{flex:1;background:#0f0f13;border:1px solid #3f3f5c;border-radius:8px;padding:8px 12px;color:#e2e8f0;font-size:.82rem}
+.token-bar button{background:#7c3aed;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;font-size:.82rem;white-space:nowrap}
+.token-bar button:hover{background:#6d28d9}
+main{display:grid;grid-template-columns:220px 1fr;height:calc(100vh - 57px)}
+nav{background:#13131f;border-right:1px solid #2d2d44;padding:16px 0;overflow-y:auto}
+nav a{display:block;padding:9px 20px;color:#94a3b8;font-size:.83rem;cursor:pointer;border-left:3px solid transparent;transition:.15s}
+nav a:hover,nav a.active{color:#a78bfa;border-left-color:#7c3aed;background:#1a1a2e}
+nav .section-label{padding:16px 20px 6px;font-size:.7rem;letter-spacing:.1em;color:#475569;text-transform:uppercase}
+.content{overflow-y:auto;padding:24px 28px}
+.endpoint{background:#1a1a2e;border:1px solid #2d2d44;border-radius:12px;margin-bottom:16px;overflow:hidden}
+.endpoint-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.endpoint-header:hover{background:#22223a}
+.method{font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:5px;min-width:52px;text-align:center}
+.GET{background:#0e4429;color:#4ade80}.POST{background:#451a03;color:#fb923c}
+.PATCH{background:#1e1b4b;color:#818cf8}.DELETE{background:#450a0a;color:#f87171}
+.endpoint-header h3{font-size:.85rem;color:#cbd5e1;flex:1}
+.url-badge{font-size:.75rem;color:#64748b;font-family:monospace}
+.endpoint-body{padding:16px;border-top:1px solid #2d2d44;display:none}
+.endpoint-body.open{display:block}
+label{display:block;font-size:.75rem;color:#94a3b8;margin-bottom:4px;margin-top:10px}
+input,textarea,select{width:100%;background:#0f0f13;border:1px solid #3f3f5c;border-radius:8px;padding:8px 10px;color:#e2e8f0;font-size:.82rem;font-family:monospace}
+textarea{min-height:90px;resize:vertical}
+.send-btn{margin-top:12px;background:#7c3aed;border:none;border-radius:8px;padding:9px 20px;color:#fff;cursor:pointer;font-size:.83rem}
+.send-btn:hover{background:#6d28d9}
+.response{margin-top:12px;background:#0a0a12;border:1px solid #2d2d44;border-radius:8px;padding:12px;font-family:monospace;font-size:.78rem;white-space:pre-wrap;max-height:300px;overflow-y:auto;color:#86efac}
+.response.err{color:#f87171}
+.response.empty{color:#475569;font-style:italic}
+.badge-ok{display:inline-block;background:#14532d;color:#4ade80;padding:2px 8px;border-radius:4px;font-size:.7rem;margin-right:6px}
+.badge-err{display:inline-block;background:#450a0a;color:#f87171;padding:2px 8px;border-radius:4px;font-size:.7rem;margin-right:6px}
+.status-line{font-size:.75rem;margin-bottom:6px;color:#94a3b8}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Customer Backend — API Tester</h1>
+  <div class="token-bar">
+    <input id="jwt" placeholder="Paste Supabase JWT token here (for auth-required endpoints)" />
+    <button onclick="saveToken()">Save Token</button>
+  </div>
+</header>
+<main>
+  <nav id="nav"></nav>
+  <div class="content" id="content"></div>
+</main>
+<script>
+const BASE = 'http://localhost:8001';
+
+const ENDPOINTS = [
+  {section:'Services (A1)', id:'s1', method:'GET', path:'/api/services/', label:'List Services', auth:false,
+    params:[{name:'search',ph:'keyword'},{name:'location',ph:'city'},{name:'appointment_type',ph:'user or resource'}]},
+  {section:'Services (A1)', id:'s2', method:'GET', path:'/api/services/{id}/', label:'Service Detail', auth:false,
+    path_params:[{name:'id',ph:'service UUID'}]},
+  {section:'Services (A1)', id:'s3', method:'GET', path:'/api/services/{id}/resources/', label:'Service Resources', auth:false,
+    path_params:[{name:'id',ph:'service UUID'}]},
+  {section:'Services (A1)', id:'s4', method:'GET', path:'/api/services/{id}/availability/', label:'Availability (Slot Grid)', auth:false,
+    path_params:[{name:'id',ph:'service UUID'}],
+    params:[{name:'date',ph:'YYYY-MM-DD'},{name:'resource_id',ph:'resource UUID (optional)'}]},
+  {section:'Services (A1)', id:'s5', method:'GET', path:'/api/services/{id}/next-available/', label:'Next Available Dates', auth:false,
+    path_params:[{name:'id',ph:'service UUID'}],
+    params:[{name:'count',ph:'3'},{name:'from',ph:'YYYY-MM-DD (optional)'}]},
+
+  {section:'Slots (A3)', id:'sl1', method:'POST', path:'/api/slots/hold/', label:'Create Hold', auth:true,
+    body:`{\n  "service_id": "",\n  "slot_date": "2026-05-10",\n  "slot_start": "10:00",\n  "slot_end": "11:00",\n  "capacity_held": 1\n}`},
+  {section:'Slots (A3)', id:'sl2', method:'PATCH', path:'/api/slots/hold/{id}/', label:'Refresh Hold (Heartbeat)', auth:true,
+    path_params:[{name:'id',ph:'hold UUID'}]},
+  {section:'Slots (A3)', id:'sl3', method:'DELETE', path:'/api/slots/hold/{id}/delete/', label:'Release Hold', auth:true,
+    path_params:[{name:'id',ph:'hold UUID'}]},
+
+  {section:'Bookings (A2)', id:'b1', method:'POST', path:'/api/bookings/', label:'Create Booking', auth:true,
+    body:`{\n  "service_id": "",\n  "slot_date": "2026-05-10",\n  "slot_start": "10:00",\n  "slot_end": "11:00",\n  "hold_id": "",\n  "capacity_booked": 1,\n  "answers": []\n}`},
+  {section:'Bookings (A2)', id:'b2', method:'GET', path:'/api/bookings/mine/', label:'My Bookings (conflict check)', auth:true,
+    params:[{name:'date',ph:'YYYY-MM-DD'}]},
+  {section:'Bookings (A2)', id:'b3', method:'GET', path:'/api/bookings/{id}/', label:'Booking Detail', auth:true,
+    path_params:[{name:'id',ph:'booking UUID'}]},
+  {section:'Bookings (A2)', id:'b4', method:'GET', path:'/api/bookings/{id}/status/', label:'Booking Status (poll)', auth:true,
+    path_params:[{name:'id',ph:'booking UUID'}]},
+  {section:'Bookings (A2)', id:'b5', method:'POST', path:'/api/bookings/{id}/cancel/', label:'Cancel Booking', auth:true,
+    path_params:[{name:'id',ph:'booking UUID'}]},
+  {section:'Bookings (A2)', id:'b6', method:'GET', path:'/api/bookings/cancel/{token}/', label:'Cancel by Token (email link)', auth:false,
+    path_params:[{name:'token',ph:'confirmation_token from booking'}]},
+
+  {section:'Payments (A2 Step 5)', id:'p1', method:'POST', path:'/api/payments/{booking_id}/', label:'Initiate Payment', auth:true,
+    path_params:[{name:'booking_id',ph:'booking UUID'}],
+    body:`{\n  "payment_method": "card",\n  "card_number": "4242424242424242",\n  "card_expiry": "12/28",\n  "card_cvv": "123",\n  "card_name": "Test User"\n}`},
+  {section:'Payments (A2 Step 5)', id:'p2', method:'GET', path:'/api/payments/{booking_id}/status/', label:'Payment Status (poll)', auth:true,
+    path_params:[{name:'booking_id',ph:'booking UUID'}]},
+
+  {section:'Autofill (A2 Step 4)', id:'a1', method:'GET', path:'/api/profile/autofill/', label:'Autofill for Service', auth:true,
+    params:[{name:'service',ph:'service UUID'}]},
+];
+
+let token = localStorage.getItem('jwt') || '';
+
+function saveToken(){
+  token = document.getElementById('jwt').value.trim();
+  localStorage.setItem('jwt', token);
+  document.getElementById('jwt').style.borderColor = '#4ade80';
+  setTimeout(()=>document.getElementById('jwt').style.borderColor='', 1200);
+}
+
+function buildUI(){
+  const nav = document.getElementById('nav');
+  const content = document.getElementById('content');
+  const sections = [...new Set(ENDPOINTS.map(e=>e.section))];
+
+  sections.forEach(sec=>{
+    const label = document.createElement('div');
+    label.className = 'section-label';
+    label.textContent = sec;
+    nav.appendChild(label);
+    ENDPOINTS.filter(e=>e.section===sec).forEach(ep=>{
+      const a = document.createElement('a');
+      a.textContent = ep.label;
+      a.onclick = ()=>{ document.getElementById('ep-'+ep.id).scrollIntoView({behavior:'smooth'});
+        document.querySelectorAll('nav a').forEach(x=>x.classList.remove('active'));
+        a.classList.add('active'); };
+      nav.appendChild(a);
+    });
+  });
+
+  ENDPOINTS.forEach(ep=>{
+    const div = document.createElement('div');
+    div.className = 'endpoint';
+    div.id = 'ep-'+ep.id;
+
+    let fieldsHTML = '';
+    (ep.path_params||[]).forEach(p=>{
+      fieldsHTML += `<label>Path: <code>${p.name}</code></label><input id="${ep.id}_pp_${p.name}" placeholder="${p.ph}" />`;
+    });
+    (ep.params||[]).forEach(p=>{
+      fieldsHTML += `<label>Query: <code>${p.name}</code></label><input id="${ep.id}_qp_${p.name}" placeholder="${p.ph}" />`;
+    });
+    if(ep.body){
+      fieldsHTML += `<label>Request Body (JSON)</label><textarea id="${ep.id}_body">${ep.body}</textarea>`;
+    }
+
+    div.innerHTML = `
+      <div class="endpoint-header" onclick="toggle('${ep.id}')">
+        <span class="method ${ep.method}">${ep.method}</span>
+        <h3>${ep.label} <span style="color:#475569;font-weight:400;font-size:.75rem">${ep.auth?'🔐':'🌐'}</span></h3>
+        <span class="url-badge">${ep.path}</span>
+      </div>
+      <div class="endpoint-body" id="body-${ep.id}">
+        ${fieldsHTML}
+        <button class="send-btn" onclick="send('${ep.id}')">▶ Send Request</button>
+        <div class="response empty" id="res-${ep.id}">Response will appear here…</div>
+      </div>`;
+    content.appendChild(div);
+  });
+}
+
+function toggle(id){
+  const b = document.getElementById('body-'+id);
+  b.classList.toggle('open');
+}
+
+async function send(id){
+  const ep = ENDPOINTS.find(e=>e.id===id);
+  let path = ep.path;
+
+  (ep.path_params||[]).forEach(p=>{
+    const val = document.getElementById(`${id}_pp_${p.name}`)?.value.trim();
+    path = path.replace(`{${p.name}}`, val||`{${p.name}}`);
+  });
+
+  const qps = [];
+  (ep.params||[]).forEach(p=>{
+    const val = document.getElementById(`${id}_qp_${p.name}`)?.value.trim();
+    if(val) qps.push(`${p.name}=${encodeURIComponent(val)}`);
+  });
+  if(qps.length) path += '?' + qps.join('&');
+
+  const url = BASE + path;
+  const headers = {'Content-Type':'application/json'};
+  if(ep.auth && token) headers['Authorization'] = 'Bearer ' + token;
+
+  let body = undefined;
+  if(ep.body){
+    try{ body = document.getElementById(`${id}_body`)?.value; JSON.parse(body); }
+    catch(e){ showRes(id, null, 'Invalid JSON in body: '+e.message, true); return; }
+  }
+
+  const resEl = document.getElementById('res-'+id);
+  resEl.className = 'response';
+  resEl.textContent = 'Sending…';
+
+  try{
+    const opts = {method: ep.method, headers};
+    if(body && ep.method !== 'GET' && ep.method !== 'DELETE') opts.body = body;
+    const t0 = Date.now();
+    const r = await fetch(url, opts);
+    const ms = Date.now()-t0;
+    let data;
+    try{ data = await r.json(); } catch(e){ data = await r.text(); }
+    const ok = r.status < 400;
+    resEl.className = 'response' + (ok ? '' : ' err');
+    const badge = ok ? `<span class="badge-ok">${r.status}</span>` : `<span class="badge-err">${r.status}</span>`;
+    resEl.innerHTML = `<div class="status-line">${badge} ${r.statusText} · ${ms}ms · ${url}</div>` +
+      `<span style="color:inherit">${JSON.stringify(data, null, 2)}</span>`;
+  }catch(e){
+    resEl.className = 'response err';
+    resEl.textContent = 'Network error: ' + e.message + '\n\nIs the server running at ' + BASE + '?';
+  }
+}
+
+function showRes(id, status, text, isErr){
+  const el = document.getElementById('res-'+id);
+  el.className = 'response' + (isErr?' err':'');
+  el.textContent = text;
+}
+
+document.getElementById('jwt').value = token;
+buildUI();
+</script>
+</body>
+</html>

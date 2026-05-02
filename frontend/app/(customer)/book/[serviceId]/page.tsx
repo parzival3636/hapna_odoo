@@ -1,348 +1,234 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { fetchApi } from "@/lib/api";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { customerApi } from "@/lib/customer-api";
+import StepDatePicker from "./StepDatePicker";
+import StepSlotGrid from "./StepSlotGrid";
+import StepIntakeForm from "./StepIntakeForm";
+import StepConfirmation from "./StepConfirmation";
 
-interface ServiceQuestion {
-  id: string;
-  question_text: string;
-  question_type: string;
-  is_required: boolean;
-  options?: string[] | null;
-}
-
-interface Service {
+interface ServiceDetail {
   id: string;
   title: string;
   description: string;
   duration_minutes: number;
+  appointment_type: string;
   location: string;
   venue_address: string;
-  questions: ServiceQuestion[];
+  payment_amount: string;
+  advance_payment_required: boolean;
+  manual_confirmation: boolean;
+  max_capacity: number | null;
+  timezone: string;
+  questions: any[];
+  resources: any[];
 }
 
-export default function PublicBookingPage() {
+export interface BookingState {
+  step: number;
+  serviceId: string;
+  resourceId: string | null;
+  selectedDate: string | null;
+  selectedSlot: { start: string; end: string } | null;
+  capacity: number;
+  answers: { question_id: string; value: string }[];
+  holdId: string | null;
+  bookingId: string | null;
+  bookingData: any | null;
+}
+
+const STEP_LABELS = ["Select Date", "Pick Slot", "Details", "Confirmed"];
+
+export default function BookingWizardPage() {
   const { serviceId } = useParams();
-  const router = useRouter();
-  const [service, setService] = useState<Service | null>(null);
+  const searchParams = useSearchParams();
+  const preDate = searchParams.get("date");
+
+  const [service, setService] = useState<ServiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [state, setState] = useState<BookingState>({
+    step: 0,
+    serviceId: serviceId as string,
+    resourceId: null,
+    selectedDate: preDate || null,
+    selectedSlot: null,
+    capacity: 1,
+    answers: [],
+    holdId: null,
+    bookingId: null,
+    bookingData: null,
+  });
 
-  // Answers keyed by question id
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const update = useCallback(
+    (patch: Partial<BookingState>) =>
+      setState((prev) => ({ ...prev, ...patch })),
+    []
+  );
 
   useEffect(() => {
-    async function loadService() {
+    async function load() {
       try {
-        const data = await fetchApi(`/services/${serviceId}/preview/`, { requireAuth: false });
-        setService(data);
-        // Initialize answers state
-        const initial: Record<string, string | string[]> = {};
-        (data.questions ?? []).forEach((q: ServiceQuestion) => {
-          initial[q.id] = q.question_type === "checkbox" ? [] : "";
+        const data = await customerApi(`/services/${serviceId}/`, {
+          requireAuth: false,
         });
-        setAnswers(initial);
-      } catch (err: any) {
-        setError("Service not found or unavailable.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadService();
-  }, [serviceId]);
-
-  function updateAnswer(qId: string, value: string | string[]) {
-    setAnswers((prev) => ({ ...prev, [qId]: value }));
-  }
-
-  function handleCheckboxToggle(qId: string, option: string) {
-    setAnswers((prev) => {
-      const current = (prev[qId] as string[]) || [];
-      if (current.includes(option)) {
-        return { ...prev, [qId]: current.filter((v) => v !== option) };
-      }
-      return { ...prev, [qId]: [...current, option] };
-    });
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-
-    // Validate required questions
-    const questions = service?.questions ?? [];
-    for (const q of questions) {
-      const ans = answers[q.id];
-      if (q.is_required) {
-        const isEmpty =
-          ans === undefined ||
-          ans === "" ||
-          (Array.isArray(ans) && ans.length === 0);
-        if (isEmpty) {
-          setError(`Please answer: "${q.question_text}"`);
-          setSubmitting(false);
-          return;
+        setService(data);
+        if (data.resources?.length > 0) {
+          update({ resourceId: data.resources[0].id });
         }
+        if (preDate) update({ step: 1 });
+      } catch {
+        setError("Service not found.");
       }
+      setLoading(false);
     }
+    load();
+  }, [serviceId, preDate, update]);
 
-    // Build answers payload
-    const answersPayload = questions
-      .filter((q) => {
-        const ans = answers[q.id];
-        return ans !== undefined && ans !== "" && !(Array.isArray(ans) && ans.length === 0);
-      })
-      .map((q) => ({
-        question_id: q.id,
-        answer_text: Array.isArray(answers[q.id])
-          ? (answers[q.id] as string[]).join(", ")
-          : answers[q.id],
-      }));
-
-    try {
-      await fetchApi("/bookings/create/", {
-        method: "POST",
-        body: JSON.stringify({
-          service_id: serviceId,
-          slot_date: date,
-          slot_start: time,
-          slot_end: time,
-          booking_channel: "web",
-          answers: answersPayload,
-        }),
-      });
-      alert("Booking request submitted! Check your email for confirmation.");
-      router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Failed to submit booking");
-      setSubmitting(false);
-    }
-  }
+  // Cleanup hold on unmount
+  useEffect(() => {
+    return () => {
+      if (state.holdId) {
+        customerApi(`/slots/hold/${state.holdId}/delete/`, {
+          method: "DELETE",
+          requireAuth: true,
+        }).catch(() => {});
+      }
+    };
+  }, [state.holdId]);
 
   if (loading)
-    return <div className="p-12 text-center text-white">Loading service details...</div>;
-  if (!service) return <div className="p-12 text-center text-red-500">{error}</div>;
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center">
+        <div className="animate-pulse text-[#94a3b8]">Loading booking flow...</div>
+      </div>
+    );
 
-  const questions = service.questions ?? [];
+  if (!service)
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center">
+        <div className="glass-card p-8 text-center">
+          <p className="text-[#ef4444] mb-4">{error}</p>
+          <Link href="/services" className="text-[#7c3aed] hover:underline">← Back</Link>
+        </div>
+      </div>
+    );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white p-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="glass-card p-8">
-          <h1 className="text-3xl font-bold mb-2">{service.title}</h1>
-          <p className="text-[#94a3b8] mb-6">{service.description}</p>
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      {/* Header */}
+      <header className="border-b border-[rgba(255,255,255,0.08)] bg-[rgba(10,10,15,0.9)] backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href={`/services/${serviceId}`} className="text-[#94a3b8] hover:text-white text-sm">
+            ← {service.title}
+          </Link>
+          <span className="text-xs text-[#64748b]">
+            {service.duration_minutes} min · {service.location || "Online"}
+          </span>
+        </div>
+      </header>
 
-          <div className="flex gap-6 mb-8 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-[#7c3aed]">⏱️</span>
-              <span>{service.duration_minutes} Minutes</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[#7c3aed]">📍</span>
-              <span>
-                {service.location}{" "}
-                {service.venue_address && `— ${service.venue_address}`}
+      {/* Step Indicator */}
+      <div className="max-w-3xl mx-auto px-6 pt-8 pb-4">
+        <div className="flex items-center gap-2">
+          {STEP_LABELS.map((label, i) => (
+            <div key={i} className="flex items-center gap-2 flex-1">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                  i < state.step
+                    ? "bg-[#22c55e] text-white"
+                    : i === state.step
+                    ? "bg-[#7c3aed] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]"
+                    : "bg-[rgba(255,255,255,0.06)] text-[#64748b]"
+                }`}
+              >
+                {i < state.step ? "✓" : i + 1}
+              </div>
+              <span
+                className={`text-xs hidden sm:inline ${
+                  i === state.step ? "text-white" : "text-[#64748b]"
+                }`}
+              >
+                {label}
               </span>
+              {i < STEP_LABELS.length - 1 && (
+                <div
+                  className={`flex-1 h-px ${
+                    i < state.step
+                      ? "bg-[#22c55e]"
+                      : "bg-[rgba(255,255,255,0.08)]"
+                  }`}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Resource Selector (if resource-type) */}
+      {service.appointment_type === "resource" &&
+        service.resources.length > 0 &&
+        state.step < 3 && (
+          <div className="max-w-3xl mx-auto px-6 pb-4">
+            <label className="text-xs text-[#94a3b8] mb-2 block">
+              Select Resource
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {service.resources.map((r: any) => (
+                <button
+                  key={r.id}
+                  onClick={() => update({ resourceId: r.id, selectedSlot: null, holdId: null })}
+                  className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                    state.resourceId === r.id
+                      ? "bg-[#7c3aed] text-white"
+                      : "bg-[rgba(255,255,255,0.05)] text-[#94a3b8] hover:bg-[rgba(255,255,255,0.08)]"
+                  }`}
+                >
+                  {r.name}
+                </button>
+              ))}
             </div>
           </div>
+        )}
 
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-6 border-t border-[rgba(255,255,255,0.08)] pt-8"
-          >
-            {/* Date/time row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[#94a3b8]">Select Date</label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="auth-input"
-                  min={new Date().toISOString().split("T")[0]}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[#94a3b8]">Select Time</label>
-                <input
-                  type="time"
-                  required
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="auth-input"
-                />
-              </div>
-            </div>
-
-            {/* ═══════ Dynamic questions ═══════ */}
-            {questions.length > 0 && (
-              <div className="space-y-5 border-t border-[rgba(255,255,255,0.08)] pt-6">
-                <h3 className="text-sm font-semibold text-[#94a3b8] uppercase tracking-wider">
-                  Additional Information
-                </h3>
-                {questions.map((q) => (
-                  <div key={q.id} className="space-y-2">
-                    <label className="text-sm font-medium text-white flex items-center gap-1">
-                      {q.question_text}
-                      {q.is_required && (
-                        <span className="text-[#ef4444] text-xs">*</span>
-                      )}
-                    </label>
-
-                    {/* Single line text */}
-                    {q.question_type === "single_line" && (
-                      <input
-                        type="text"
-                        value={(answers[q.id] as string) || ""}
-                        onChange={(e) => updateAnswer(q.id, e.target.value)}
-                        className="auth-input"
-                        required={q.is_required}
-                        placeholder="Your answer"
-                      />
-                    )}
-
-                    {/* Multi-line text */}
-                    {q.question_type === "multi_line" && (
-                      <textarea
-                        value={(answers[q.id] as string) || ""}
-                        onChange={(e) => updateAnswer(q.id, e.target.value)}
-                        className="auth-input min-h-[80px] py-3"
-                        required={q.is_required}
-                        placeholder="Your answer"
-                      />
-                    )}
-
-                    {/* Phone number */}
-                    {q.question_type === "phone" && (
-                      <input
-                        type="tel"
-                        value={(answers[q.id] as string) || ""}
-                        onChange={(e) => updateAnswer(q.id, e.target.value)}
-                        className="auth-input"
-                        required={q.is_required}
-                        placeholder="e.g. +91 98765 43210"
-                      />
-                    )}
-
-                    {/* Radio (one answer) */}
-                    {q.question_type === "radio" && q.options && (
-                      <div className="space-y-2 pl-1">
-                        {q.options.map((opt) => (
-                          <label
-                            key={opt}
-                            className="flex items-center gap-3 cursor-pointer group"
-                          >
-                            <span
-                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
-                                (answers[q.id] as string) === opt
-                                  ? "border-[#7c3aed] bg-[#7c3aed]"
-                                  : "border-[rgba(255,255,255,0.25)] group-hover:border-[rgba(255,255,255,0.4)]"
-                              }`}
-                            >
-                              {(answers[q.id] as string) === opt && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                              )}
-                            </span>
-                            <input
-                              type="radio"
-                              name={`q_${q.id}`}
-                              value={opt}
-                              checked={(answers[q.id] as string) === opt}
-                              onChange={() => updateAnswer(q.id, opt)}
-                              className="sr-only"
-                              required={q.is_required && !answers[q.id]}
-                            />
-                            <span className="text-sm text-[#cbd5e1]">{opt}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Checkboxes (multiple answers) */}
-                    {q.question_type === "checkbox" && q.options && (
-                      <div className="space-y-2 pl-1">
-                        {q.options.map((opt) => {
-                          const checked = ((answers[q.id] as string[]) || []).includes(opt);
-                          return (
-                            <label
-                              key={opt}
-                              className="flex items-center gap-3 cursor-pointer group"
-                            >
-                              <span
-                                className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-                                  checked
-                                    ? "bg-[#7c3aed] border-[#7c3aed]"
-                                    : "border-[rgba(255,255,255,0.25)] group-hover:border-[rgba(255,255,255,0.4)]"
-                                }`}
-                              >
-                                {checked && (
-                                  <svg
-                                    className="w-3 h-3 text-white"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={3}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
-                                )}
-                              </span>
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => handleCheckboxToggle(q.id, opt)}
-                                className="sr-only"
-                              />
-                              <span className="text-sm text-[#cbd5e1]">{opt}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Fallback for unknown types */}
-                    {!["single_line", "multi_line", "phone", "radio", "checkbox"].includes(
-                      q.question_type
-                    ) && (
-                      <input
-                        type="text"
-                        value={(answers[q.id] as string) || ""}
-                        onChange={(e) => updateAnswer(q.id, e.target.value)}
-                        className="auth-input"
-                        placeholder="Your answer"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`w-full py-4 rounded-xl bg-[#7c3aed] text-white font-bold text-lg hover:bg-[#6d28d9] transition-all ${
-                submitting
-                  ? "opacity-50 cursor-not-allowed"
-                  : "shadow-[0_0_20px_rgba(124,58,237,0.3)] hover:shadow-[0_0_30px_rgba(124,58,237,0.5)]"
-              }`}
-            >
-              {submitting ? "Processing..." : "Confirm Booking"}
-            </button>
-          </form>
-        </div>
+      {/* Step Content */}
+      <div className="max-w-3xl mx-auto px-6 pb-16">
+        {state.step === 0 && (
+          <StepDatePicker
+            serviceId={service.id}
+            resourceId={state.resourceId}
+            selectedDate={state.selectedDate}
+            onSelect={(date) => update({ selectedDate: date, step: 1, selectedSlot: null, holdId: null })}
+          />
+        )}
+        {state.step === 1 && state.selectedDate && (
+          <StepSlotGrid
+            serviceId={service.id}
+            resourceId={state.resourceId}
+            date={state.selectedDate}
+            maxCapacity={service.max_capacity || 1}
+            state={state}
+            update={update}
+            onBack={() => update({ step: 0 })}
+          />
+        )}
+        {state.step === 2 && (
+          <StepIntakeForm
+            service={service}
+            state={state}
+            update={update}
+            onBack={() => update({ step: 1 })}
+          />
+        )}
+        {state.step === 3 && state.bookingData && (
+          <StepConfirmation
+            bookingData={state.bookingData}
+            service={service}
+          />
+        )}
       </div>
     </div>
   );

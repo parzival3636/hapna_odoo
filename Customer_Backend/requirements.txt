@@ -1,0 +1,12 @@
+django>=5.0
+djangorestframework>=3.15
+django-cors-headers>=4.3
+psycopg2-binary>=2.9
+python-dotenv>=1.0
+celery>=5.4
+redis>=5.0
+supabase>=2.0
+joblib>=1.4
+resend>=2.0
+gunicorn>=22.0
+dj-database-url>=2.1
