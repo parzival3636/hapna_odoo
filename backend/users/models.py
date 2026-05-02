@@ -35,3 +35,18 @@ class User(AbstractUser):
     
     def __str__(self):
         return f"{self.username} ({self.role})"
+
+
+class GoogleCredential(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='google_creds')
+    token = models.TextField()
+    refresh_token = models.TextField()
+    token_uri = models.TextField()
+    client_id = models.TextField()
+    client_secret = models.TextField()
+    scopes = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Google Credentials for {self.user.username}"

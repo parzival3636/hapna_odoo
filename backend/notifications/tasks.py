@@ -68,12 +68,21 @@ def _generate_ai_email_body(booking):
     except Exception as e:
         logger.warning(f"Grok email generation failed, using template: {e}")
         service = booking.service
+        meeting_html = ""
+        if booking.meeting_link:
+            provider = "Jitsi Meet" if booking.meeting_provider == 'jitsi' else "Zoom"
+            meeting_html = f"""
+            <p><strong>📹 {provider} Meeting:</strong> <a href="{booking.meeting_link}">{booking.meeting_link}</a></p>
+            <p><strong>Meeting ID:</strong> {booking.meeting_id}</p>
+            """
+
         return f"""
         <h2>Booking Confirmed</h2>
         <p>Your appointment for <strong>{service.title if service else 'your service'}</strong> is confirmed.</p>
         <p><strong>Date:</strong> {booking.slot_date}</p>
         <p><strong>Time:</strong> {booking.slot_start} - {booking.slot_end}</p>
         <p><strong>Location:</strong> {service.location or 'Online' if service else 'TBD'}</p>
+        {meeting_html}
         <p>Reference: {booking.confirmation_token}</p>
         """
 
@@ -107,11 +116,20 @@ def send_booking_reserved(self, booking_id):
     try:
         booking = _get_booking(booking_id)
         service = booking.service
+        meeting_html = ""
+        if booking.meeting_link:
+            provider = "Jitsi Meet" if booking.meeting_provider == "jitsi" else "Zoom"
+            meeting_html = f"""
+            <p><strong>📹 {provider} Meeting:</strong> <a href="{booking.meeting_link}">{booking.meeting_link}</a></p>
+            <p><strong>Meeting ID:</strong> {booking.meeting_id}</p>
+            """
+
         body = f"""
         <h2>Booking Request Received</h2>
         <p>Your booking request for <strong>{service.title if service else 'Appointment'}</strong> has been received.</p>
         <p><strong>Date:</strong> {booking.slot_date}</p>
         <p><strong>Time:</strong> {booking.slot_start} - {booking.slot_end}</p>
+        {meeting_html}
         <p>The organiser will review and confirm your appointment. You'll receive another email once approved.</p>
         <p>Reference: {booking.confirmation_token}</p>
         """
@@ -133,13 +151,21 @@ def send_organiser_new_booking(self, booking_id):
         if not service:
             return
 
+        meeting_html = ""
+        if booking.meeting_link:
+            provider = "Jitsi Meet" if booking.meeting_provider == "jitsi" else "Zoom"
+            meeting_html = f"""
+            <p><strong>📹 {provider} Meeting:</strong> <a href="{booking.meeting_link}">{booking.meeting_link}</a></p>
+            <p><strong>Meeting ID:</strong> {booking.meeting_id}</p>
+            """
+
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
         body = f"""
         <h2>New Booking Received</h2>
         <p><strong>Service:</strong> {service.title}</p>
         <p><strong>Customer:</strong> {booking.customer.email}</p>
         <p><strong>Date:</strong> {booking.slot_date} at {booking.slot_start}</p>
-        <p><strong>Channel:</strong> {booking.booking_channel}</p>
+        {meeting_html}
         <p><strong>Status:</strong> {booking.status}</p>
         <p>
             <a href="{frontend_url}/dashboard/bookings">View in Dashboard</a>

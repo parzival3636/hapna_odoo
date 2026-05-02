@@ -17,6 +17,8 @@ from .serializers import (
     BookingListSerializer, BookingDetailSerializer,
     CalendarEventSerializer, StatusUpdateSerializer, RejectSerializer,
 )
+from services.calendar_service import add_event_to_calendar
+
 
 
 class IsOrganiser:
@@ -29,8 +31,10 @@ class IsOrganiser:
 
 def get_organiser_services(user):
     """Get all service IDs belonging to this organiser."""
+    if user.role == 'admin':
+        return Service.objects.values_list('id', flat=True)
     return Service.objects.filter(
-        organization=user.organization
+        created_by=user
     ).values_list('id', flat=True)
 
 
@@ -96,6 +100,23 @@ class BookingCreateView(APIView):
             confirmation_token=uuid.uuid4().hex[:12],
         )
 
+        # Generate meeting link if service has online meeting provider
+        if (service.location == 'Online' and
+                service.online_meeting_provider != 'none' and
+                service.meeting_auto_create):
+            from services.meeting_service import create_meeting
+            meeting_data = create_meeting(
+                provider=service.online_meeting_provider,
+                booking_id=str(booking.id),
+                slot_date=booking.slot_date,
+                slot_start=booking.slot_start,
+            )
+            if meeting_data:
+                booking.meeting_provider = service.online_meeting_provider
+                booking.meeting_id = meeting_data['meeting_id']
+                booking.meeting_link = meeting_data['meeting_link']
+                booking.save()
+
         # Save answers
         for ans in answers_data:
             qid = ans.get('question_id')
@@ -111,35 +132,26 @@ class BookingCreateView(APIView):
                 except ServiceQuestion.DoesNotExist:
                     pass  # skip invalid question ids
 
-        # Send confirmation email
-        if request.user.email:
-            subject = f"Booking Request Received: {service.title}"
-            message = (
-                f"Hello {request.user.username},\n\n"
-                f"Your booking for '{service.title}' on {booking.slot_date} at {booking.slot_start} has been received.\n"
-                f"Status: {booking.status.upper()}\n\n"
-            )
-            if service.confirmation_message:
-                message += f"{service.confirmation_message}\n\n"
-            
-            message += "Thank you for using our service!"
-            
-            try:
-                send_mail(
-                    subject=subject,
-                    message=message,
-                    from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=[request.user.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Error sending email: {e}")
+        # Trigger customer confirmation email
+        from notifications.tasks import send_booking_reserved
+        send_booking_reserved.delay(str(booking.id))
+
+        # Trigger organiser notification
+        from notifications.tasks import send_organiser_new_booking
+        send_organiser_new_booking.delay(str(booking.id))
+
+        # Sync to Google Calendar if confirmed
+        if booking.status == 'confirmed' and booking.service.created_by.google_calendar_connected:
+            add_event_to_calendar(booking)
 
         return Response(
             {
                 'id': str(booking.id),
                 'status': booking.status,
                 'confirmation_token': booking.confirmation_token,
+                'meeting_provider': booking.meeting_provider,
+                'meeting_id': booking.meeting_id,
+                'meeting_link': booking.meeting_link,
                 'message': 'Booking created successfully',
             },
             status=status.HTTP_201_CREATED,
@@ -275,7 +287,52 @@ class BookingConfirmView(APIView):
         # Update status
         booking.status = 'confirmed'
         booking.confirmed_at = datetime.now()
+
+        # Generate meeting link on confirm if not already created
+        if (not booking.meeting_link and
+                service.location == 'Online' and
+                service.online_meeting_provider != 'none' and
+                service.meeting_auto_create):
+            from services.meeting_service import create_meeting
+            meeting_data = create_meeting(
+                provider=service.online_meeting_provider,
+                booking_id=str(booking.id),
+                slot_date=booking.slot_date,
+                slot_start=booking.slot_start,
+            )
+            if meeting_data:
+                booking.meeting_provider = service.online_meeting_provider
+                booking.meeting_id = meeting_data['meeting_id']
+                booking.meeting_link = meeting_data['meeting_link']
+
         booking.save()
+
+        # Sync to Google Calendar
+        if booking.service.created_by.google_calendar_connected:
+            add_event_to_calendar(booking)
+
+        # Send meeting details email to customer
+        if booking.meeting_link and booking.customer.email:
+            provider_name = 'Jitsi Meet' if booking.meeting_provider == 'jitsi' else 'Zoom'
+            try:
+                send_mail(
+                    subject=f"Meeting Details — {service.title}",
+                    message=(
+                        f"Hello {booking.customer.username},\n\n"
+                        f"Your booking for '{service.title}' has been confirmed!\n\n"
+                        f"📹 {provider_name} Meeting Details:\n"
+                        f"Meeting ID: {booking.meeting_id}\n"
+                        f"Join Link: {booking.meeting_link}\n\n"
+                        f"Date: {booking.slot_date}\n"
+                        f"Time: {booking.slot_start} - {booking.slot_end}\n\n"
+                        f"See you there!"
+                    ),
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[booking.customer.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Error sending meeting email: {e}")
 
         # Trigger async tasks
         from notifications.tasks import (
@@ -287,6 +344,9 @@ class BookingConfirmView(APIView):
         return Response({
             'id': str(booking.id),
             'status': 'confirmed',
+            'meeting_provider': booking.meeting_provider,
+            'meeting_id': booking.meeting_id,
+            'meeting_link': booking.meeting_link,
             'message': 'Booking confirmed successfully',
         })
 
@@ -408,3 +468,60 @@ class BookingCalendarView(APIView):
         bookings = bookings.exclude(status='cancelled')
         serializer = CalendarEventSerializer(bookings, many=True)
         return Response(serializer.data)
+
+
+class GoogleCalendarEventsView(APIView):
+    """
+    GET /api/bookings/google-events/?month=2026-05
+    Returns the organiser's Google Calendar events for display on the calendar.
+    """
+
+    def get(self, request):
+        if request.user.role not in ('organiser', 'admin'):
+            return Response(
+                {'error': True, 'code': 'FORBIDDEN'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        month = request.query_params.get('month')  # format: 2026-05
+        if not month:
+            return Response(
+                {'error': True, 'message': 'month parameter is required (YYYY-MM)'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            year, mo = month.split('-')
+            year, mo = int(year), int(mo)
+        except ValueError:
+            return Response(
+                {'error': True, 'message': 'Invalid month format, use YYYY-MM'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from calendar import monthrange
+        start_date = datetime(year, mo, 1).date()
+        _, last_day = monthrange(year, mo)
+        end_date = datetime(year, mo, last_day).date()
+
+        # Fetch Google Calendar events
+        from services.calendar_service import get_calendar_events
+        events = get_calendar_events(request.user, start_date, end_date)
+
+        # Format for the frontend calendar
+        formatted = []
+        for ev in events:
+            formatted.append({
+                'id': ev.get('id', ''),
+                'title': ev.get('summary', '(No title)'),
+                'start': ev.get('start', ''),
+                'end': ev.get('end', ''),
+                'description': ev.get('description', ''),
+                'location': ev.get('location', ''),
+                'htmlLink': ev.get('htmlLink', ''),
+                'source': 'google',  # So frontend can distinguish from Hapna bookings
+                'color': '#4285f4',  # Google blue
+            })
+
+        return Response(formatted)
+
