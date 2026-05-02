@@ -44,8 +44,12 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Verify OTP & auth callback: allow without auth
-  if (pathname.startsWith("/verify-otp") || pathname.startsWith("/auth/")) {
+  // Verify OTP, auth callback, and landing page: allow without auth
+  if (
+    pathname.startsWith("/verify-otp") ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/landing")
+  ) {
     return supabaseResponse;
   }
 
