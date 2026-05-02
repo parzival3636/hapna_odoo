@@ -38,11 +38,18 @@ class ServiceSerializer(serializers.ModelSerializer):
         model = Service
         fields = [
             'id', 'organization', 'title', 'description', 'duration_minutes',
-            'appointment_type', 'location', 'venue_address', 'is_published',
+            'appointment_type', 'location', 'venue_address',
+            'online_meeting_provider', 'meeting_auto_create',
+            'is_published',
             'approval_status', 'manual_confirmation', 'manual_confirmation_percent',
             'max_capacity', 'advance_payment_required', 'booking_fee',
             'cancellation_hours', 'google_calendar_block_enabled',
-            'resource_assignment', 'intro_message', 'confirmation_message',
+            'resource_assignment',
+            # Scheduling
+            'schedule_start_date', 'schedule_days', 'excluded_days',
+            'working_start_time', 'working_end_time', 'capacity_per_slot',
+            # Misc
+            'intro_message', 'confirmation_message',
             'timezone', 'created_at', 'updated_at',
             'schedules', 'questions', 'resources'
         ]

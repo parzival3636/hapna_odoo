@@ -39,6 +39,11 @@ class Booking(models.Model):
     google_calendar_event_id = models.CharField(max_length=255, null=True, blank=True)
     no_show_risk_score = models.FloatField(null=True, blank=True)
     
+    # Online Meeting fields
+    meeting_provider = models.CharField(max_length=20, null=True, blank=True)  # google_meet / zoom
+    meeting_id = models.CharField(max_length=100, null=True, blank=True)
+    meeting_link = models.URLField(max_length=500, null=True, blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)

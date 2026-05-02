@@ -24,6 +24,8 @@ interface Service {
   appointment_type: string;
   location: string;
   venue_address: string;
+  online_meeting_provider: string;
+  meeting_auto_create: boolean;
   is_published: boolean;
   approval_status: string;
   manual_confirmation: boolean;
@@ -36,7 +38,25 @@ interface Service {
   schedules: any[];
   questions: ServiceQuestion[];
   resources: any[];
+  // Scheduling
+  schedule_start_date: string | null;
+  schedule_days: number;
+  excluded_days: number[];
+  working_start_time: string | null;
+  working_end_time: string | null;
+  capacity_per_slot: number;
+  max_capacity: number | null;
 }
+
+const WEEKDAYS = [
+  { value: 0, label: "Mon" },
+  { value: 1, label: "Tue" },
+  { value: 2, label: "Wed" },
+  { value: 3, label: "Thu" },
+  { value: 4, label: "Fri" },
+  { value: 5, label: "Sat" },
+  { value: 6, label: "Sun" },
+];
 
 const QUESTION_TYPES = [
   { value: "single_line", label: "Single line text" },
@@ -213,7 +233,7 @@ export default function ServiceConfig() {
 
       {/* Tabs */}
       <div className="flex border-b border-[rgba(255,255,255,0.08)] mb-8 overflow-x-auto">
-        {["details", "schedule", "questions", "resources", "options", "misc"].map((tab) => (
+        {["details", "questions", "resources", "options", "misc"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -257,49 +277,328 @@ export default function ServiceConfig() {
                 <label className="text-sm font-medium text-[#94a3b8]">Location Type</label>
                 <select
                   value={service.location}
-                  onChange={(e) => setService({ ...service, location: e.target.value })}
+                  onChange={(e) => {
+                    const newLoc = e.target.value;
+                    setService({
+                      ...service,
+                      location: newLoc,
+                      online_meeting_provider: newLoc === 'Online' ? service.online_meeting_provider : 'none',
+                    });
+                  }}
                   className="auth-input"
                 >
                   <option value="Online">Online</option>
                   <option value="Physical">Physical</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[#94a3b8]">Venue Address</label>
-                <input
-                  type="text"
-                  value={service.venue_address}
-                  onChange={(e) => setService({ ...service, venue_address: e.target.value })}
-                  className="auth-input"
-                  placeholder="e.g. Zoom link or Office address"
-                />
-              </div>
+              {service.location !== 'Online' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#94a3b8]">Venue Address</label>
+                  <input
+                    type="text"
+                    value={service.venue_address || ""}
+                    onChange={(e) => setService({ ...service, venue_address: e.target.value })}
+                    className="auth-input"
+                    placeholder="e.g. Office address"
+                  />
+                </div>
+              )}
             </div>
+
+            {/* ══ Online Meeting Provider Picker ══ */}
+            {service.location === 'Online' && (
+              <div className="space-y-4 p-6 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-1">Video Meeting Platform</h3>
+                  <p className="text-xs text-[#64748b]">Choose a platform — a meeting link will be auto-generated for every booking</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Jitsi Meet Card */}
+                  <button
+                    type="button"
+                    onClick={() => setService({ ...service, online_meeting_provider: 'jitsi' })}
+                    className={`relative p-5 rounded-xl border-2 transition-all text-left group ${
+                      service.online_meeting_provider === 'jitsi'
+                        ? 'border-[#00B2FF] bg-[rgba(0,178,255,0.08)] shadow-[0_0_20px_rgba(0,178,255,0.15)]'
+                        : 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(255,255,255,0.04)]'
+                    }`}
+                  >
+                    {service.online_meeting_provider === 'jitsi' && (
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#00B2FF] flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#1b3d5c] to-[#00B2FF] flex items-center justify-center shadow-lg">
+                        <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-white">Jitsi Meet</span>
+                        <p className="text-[10px] text-[#64748b] mt-0.5">meet.jit.si</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-[#94a3b8] leading-relaxed">Auto-generate a Jitsi meeting link for each booking. Jitsi is 100% free and requires no account.</p>
+                  </button>
+
+                  {/* Zoom Card */}
+                  <button
+                    type="button"
+                    onClick={() => setService({ ...service, online_meeting_provider: 'zoom' })}
+                    className={`relative p-5 rounded-xl border-2 transition-all text-left group ${
+                      service.online_meeting_provider === 'zoom'
+                        ? 'border-[#2d8cff] bg-[rgba(45,140,255,0.08)] shadow-[0_0_20px_rgba(45,140,255,0.15)]'
+                        : 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(255,255,255,0.04)]'
+                    }`}
+                  >
+                    {service.online_meeting_provider === 'zoom' && (
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#2d8cff] flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#0b5cff] to-[#2d8cff] flex items-center justify-center shadow-lg">
+                        <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M4 4h10v10H4V4zm12 2l4-2v12l-4-2V6z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-white">Zoom</span>
+                        <p className="text-[10px] text-[#64748b] mt-0.5">zoom.us</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-[#94a3b8] leading-relaxed">Auto-generate a Zoom meeting ID for each booking. Customers receive the join link via email.</p>
+                  </button>
+                </div>
+
+                {/* Auto-create toggle */}
+                {service.online_meeting_provider !== 'none' && (
+                  <div className="flex items-center justify-between pt-2 border-t border-[rgba(255,255,255,0.06)]">
+                    <div>
+                      <span className="text-sm font-medium text-white">Auto-create meeting on booking</span>
+                      <p className="text-xs text-[#64748b] mt-0.5">Meeting link will be generated and emailed automatically</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setService({ ...service, meeting_auto_create: !service.meeting_auto_create })}
+                      className={`relative w-11 h-6 rounded-full transition-all duration-200 ${
+                        service.meeting_auto_create ? 'bg-[#7c3aed]' : 'bg-[rgba(255,255,255,0.15)]'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                          service.meeting_auto_create ? 'translate-x-[22px]' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
+
+                {/* Selected provider summary */}
+                {service.online_meeting_provider !== 'none' && (
+                  <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                    service.online_meeting_provider === 'jitsi'
+                      ? 'bg-[rgba(0,178,255,0.1)] border border-[rgba(0,178,255,0.2)]'
+                      : 'bg-[rgba(45,140,255,0.1)] border border-[rgba(45,140,255,0.2)]'
+                  }`}>
+                    <span className="text-sm">
+                      {service.online_meeting_provider === 'jitsi' ? '🎥' : '🔵'}
+                    </span>
+                    <span className="text-xs text-[#94a3b8]">
+                      <strong className="text-white">
+                        {service.online_meeting_provider === 'jitsi' ? 'Jitsi Meet' : 'Zoom'}
+                      </strong>
+                      {' '}will be used for online meetings. Links are sent to customers upon booking{service.meeting_auto_create ? ' automatically' : ' when you confirm'}.
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#94a3b8]">Description</label>
               <textarea
-                value={service.description}
+                value={service.description || ""}
                 onChange={(e) => setService({ ...service, description: e.target.value })}
-                className="auth-input min-h-[120px] py-3"
+                className="auth-input min-h-[100px] py-3"
               />
             </div>
+
+            {/* ══════ SCHEDULE TYPE ══════ */}
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+              <h3 className="text-base font-semibold text-white mb-1">Schedule Type</h3>
+              <p className="text-xs text-[#64748b] mb-4">Choose how this service is scheduled</p>
+              <div className="flex gap-3">
+                {[{v:"weekly",l:"📅 Weekly",d:"Repeats every week"},{v:"monthly",l:"🗓️ Monthly",d:"Repeats every month"}].map(t=>(
+                  <button key={t.v} type="button"
+                    onClick={()=>setService({...service,appointment_type:t.v})}
+                    className={`flex-1 p-4 rounded-xl border-2 transition-all text-left ${service.appointment_type===t.v?"border-[#7c3aed] bg-[rgba(124,58,237,0.08)] shadow-[0_0_15px_rgba(124,58,237,0.12)]":"border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.15)]"}`}>
+                    <div className="text-lg mb-1">{t.l}</div>
+                    <div className="text-xs text-[#64748b]">{t.d}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ══════ BOOKING WINDOW ══════ */}
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+              <h3 className="text-base font-semibold text-white mb-1">Booking Window</h3>
+              <p className="text-xs text-[#64748b] mb-4">Date range customers can book within</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-[#94a3b8]">Start Date</label>
+                  <input type="date" value={service.schedule_start_date||new Date().toISOString().split('T')[0]}
+                    onChange={e=>setService({...service,schedule_start_date:e.target.value})}
+                    className="auth-input" min={new Date().toISOString().split('T')[0]}/>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-[#94a3b8]">Duration (days)</label>
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={1} max={90} value={service.schedule_days||7}
+                      onChange={e=>setService({...service,schedule_days:parseInt(e.target.value)||7})}
+                      className="auth-input w-20 text-center"/>
+                    <span className="text-xs text-[#64748b]">days</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ══════ ACTIVE DAYS (exclude days) ══════ */}
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+              <h3 className="text-base font-semibold text-white mb-1">Active Days</h3>
+              <p className="text-xs text-[#64748b] mb-4">Toggle off days you don't offer appointments (e.g. Saturday, Sunday)</p>
+              <div className="flex flex-wrap gap-2">
+                {WEEKDAYS.map(day=>{
+                  const off=(service.excluded_days||[]).includes(day.value);
+                  return(<button key={day.value} type="button" onClick={()=>{
+                    const cur=service.excluded_days||[];
+                    setService({...service,excluded_days:off?cur.filter((d:number)=>d!==day.value):[...cur,day.value]});
+                  }} className={`px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${off?"border-[rgba(255,255,255,0.05)] bg-transparent text-[#4b5563] line-through":"border-[#7c3aed] bg-[rgba(124,58,237,0.1)] text-[#a78bfa]"}`}>
+                    {day.label}
+                  </button>);
+                })}
+              </div>
+              {(service.excluded_days||[]).length>0&&(
+                <p className="text-xs text-amber-400/80 mt-2">⚠️ {(service.excluded_days||[]).map((d:number)=>WEEKDAYS.find(w=>w.value===d)?.label).filter(Boolean).join(", ")} excluded</p>
+              )}
+            </div>
+
+            {/* ══════ WORKING HOURS ══════ */}
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+              <h3 className="text-base font-semibold text-white mb-1">Working Hours</h3>
+              <p className="text-xs text-[#64748b] mb-4">Daily time window for appointments</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-[#94a3b8]">From</label>
+                  <input type="time" value={service.working_start_time||"09:00"}
+                    onChange={e=>setService({...service,working_start_time:e.target.value})} className="auth-input"/>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-[#94a3b8]">To</label>
+                  <input type="time" value={service.working_end_time||"17:00"}
+                    onChange={e=>setService({...service,working_end_time:e.target.value})} className="auth-input"/>
+                </div>
+              </div>
+            </div>
+
+            {/* ══════ SESSION LENGTH ══════ */}
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+              <h3 className="text-base font-semibold text-white mb-1">Session Length</h3>
+              <p className="text-xs text-[#64748b] mb-4">Each working day is divided into sessions of this duration</p>
+              <div className="flex items-center gap-3">
+                <input type="number" min={5} max={480} step={5} value={service.duration_minutes||30}
+                  onChange={e=>setService({...service,duration_minutes:parseInt(e.target.value)||30})}
+                  className="auth-input w-24 text-center"/>
+                <span className="text-sm text-[#94a3b8]">minutes per session</span>
+              </div>
+            </div>
+
+            {/* ══════ CAPACITY PER SESSION ══════ */}
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+              <h3 className="text-base font-semibold text-white mb-1">Capacity per Session</h3>
+              <p className="text-xs text-[#64748b] mb-4">How many people can book the same time slot</p>
+              <div className="flex gap-3 mb-3">
+                <button type="button" onClick={()=>setService({...service,capacity_per_slot:1})}
+                  className={`flex-1 p-3 rounded-xl border-2 transition-all text-left ${(service.capacity_per_slot||1)===1?"border-[#7c3aed] bg-[rgba(124,58,237,0.08)]":"border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.15)]"}`}>
+                  <span className="text-lg">👤</span>
+                  <span className="text-sm font-semibold text-white ml-2">1-on-1</span>
+                  <span className="text-xs text-[#64748b] ml-1">— one person per slot</span>
+                </button>
+                <button type="button" onClick={()=>setService({...service,capacity_per_slot:5})}
+                  className={`flex-1 p-3 rounded-xl border-2 transition-all text-left ${(service.capacity_per_slot||1)>1?"border-[#7c3aed] bg-[rgba(124,58,237,0.08)]":"border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.15)]"}`}>
+                  <span className="text-lg">👥</span>
+                  <span className="text-sm font-semibold text-white ml-2">Group</span>
+                  <span className="text-xs text-[#64748b] ml-1">— multiple per slot</span>
+                </button>
+              </div>
+              {(service.capacity_per_slot||1)>1&&(
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)]">
+                  <span className="text-xs text-[#94a3b8]">Max per slot:</span>
+                  <input type="number" min={2} max={500} value={service.capacity_per_slot}
+                    onChange={e=>setService({...service,capacity_per_slot:parseInt(e.target.value)||2})}
+                    className="auth-input w-16 text-center py-1 text-sm"/>
+                  <span className="text-xs text-[#64748b]">people</span>
+                </div>
+              )}
+            </div>
+
+            {/* ══════ VISUAL DAY CALENDAR ══════ */}
+            {(()=>{
+              const sH=parseInt((service.working_start_time||"09:00").split(":")[0]);
+              const sM=parseInt((service.working_start_time||"09:00").split(":")[1]);
+              const eH=parseInt((service.working_end_time||"17:00").split(":")[0]);
+              const eM=parseInt((service.working_end_time||"17:00").split(":")[1]);
+              const total=(eH*60+eM)-(sH*60+sM);
+              const dur=service.duration_minutes||30;
+              const n=Math.floor(total/dur);
+              const actDays=7-(service.excluded_days||[]).length;
+              if(n<=0) return null;
+              return(
+                <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+                  <h3 className="text-base font-semibold text-white mb-1">📋 Day Schedule Preview</h3>
+                  <p className="text-xs text-[#64748b] mb-4">How each working day will look — {n} sessions × {actDays} active days = <span className="text-emerald-400 font-bold">{n*actDays} total slots</span></p>
+                  <div className="rounded-xl border border-[rgba(255,255,255,0.08)] overflow-hidden">
+                    {/* Timeline header */}
+                    <div className="bg-[rgba(124,58,237,0.06)] px-4 py-2 flex items-center justify-between border-b border-[rgba(255,255,255,0.06)]">
+                      <span className="text-xs font-bold text-[#a78bfa]">{service.working_start_time||"09:00"}</span>
+                      <span className="text-[10px] text-[#64748b]">{dur} min sessions</span>
+                      <span className="text-xs font-bold text-[#a78bfa]">{service.working_end_time||"17:00"}</span>
+                    </div>
+                    {/* Slot blocks */}
+                    <div className="p-3 flex flex-wrap gap-1.5">
+                      {Array.from({length:Math.min(n,32)}).map((_,i)=>{
+                        const ms=sH*60+sM+i*dur;
+                        const me=ms+dur;
+                        const fmtT=(m:number)=>`${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
+                        return(
+                          <div key={i} className="flex-shrink-0 px-2.5 py-2 rounded-lg bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.15)] hover:bg-[rgba(124,58,237,0.15)] transition-all cursor-default group">
+                            <div className="text-[11px] font-mono font-bold text-[#a78bfa]">{fmtT(ms)}</div>
+                            <div className="text-[9px] text-[#64748b] group-hover:text-[#94a3b8]">{fmtT(me)}</div>
+                          </div>
+                        );
+                      })}
+                      {n>32&&<div className="flex items-center px-2 text-[10px] text-[#64748b]">+{n-32} more</div>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 rounded-lg bg-[#7c3aed] text-white font-medium hover:bg-[#6d28d9] transition-all"
+              className="px-6 py-2 rounded-lg bg-[#7c3aed] text-white font-medium hover:bg-[#6d28d9] transition-all mt-4"
             >
-              {saving ? "Saving..." : "Save Details"}
+              {saving ? "Saving..." : "Save Service"}
             </button>
           </form>
         )}
 
-        {/* ═══════ SCHEDULE TAB ═══════ */}
-        {activeTab === "schedule" && (
-          <div className="text-center py-12 text-[#64748b]">
-            <p className="mb-4">Schedule management component will go here.</p>
-            <p className="text-xs">Supports Weekly slots and Flexible specific dates.</p>
-          </div>
-        )}
+
 
         {/* ═══════ QUESTIONS TAB ═══════ */}
         {activeTab === "questions" && (

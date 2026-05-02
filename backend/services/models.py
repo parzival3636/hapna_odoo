@@ -14,12 +14,24 @@ class Service(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='services')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_services')
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     duration_minutes = models.IntegerField(default=30)
     appointment_type = models.CharField(max_length=50, default='user')
     location = models.CharField(max_length=255, null=True, blank=True)
     venue_address = models.TextField(null=True, blank=True)
+    
+    # Online Meeting Integration
+    MEETING_PROVIDER_CHOICES = [
+        ('none', 'None'),
+        ('jitsi', 'Jitsi Meet'),
+        ('zoom', 'Zoom'),
+    ]
+    online_meeting_provider = models.CharField(
+        max_length=20, choices=MEETING_PROVIDER_CHOICES, default='none'
+    )
+    meeting_auto_create = models.BooleanField(default=True)
     
     # Booking Rules
     is_published = models.BooleanField(default=False)
@@ -33,6 +45,14 @@ class Service(models.Model):
     google_calendar_block_enabled = models.BooleanField(default=False)
     resource_assignment = models.CharField(max_length=20, default='manual') # manual or auto
     
+    # ── Scheduling Configuration ──
+    schedule_start_date = models.DateField(null=True, blank=True)  # Start of booking window
+    schedule_days = models.IntegerField(default=7)  # How many days forward from start_date
+    excluded_days = models.JSONField(default=list, blank=True)  # Weekday ints to exclude (0=Mon..6=Sun Python convention)
+    working_start_time = models.TimeField(null=True, blank=True)  # e.g. 09:00
+    working_end_time = models.TimeField(null=True, blank=True)  # e.g. 17:00
+    capacity_per_slot = models.IntegerField(default=1)  # 1 = 1-on-1, >1 = group
+
     # Misc 
     intro_message = models.TextField(null=True, blank=True)
     confirmation_message = models.TextField(null=True, blank=True)
