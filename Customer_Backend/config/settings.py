@@ -3,7 +3,8 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = Path(__file__).resolve().parent.parent / '.env'
+load_dotenv(dotenv_path=env_path, override=True)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,6 +18,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.auth',
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
     # Customer-side apps
     'services',
@@ -26,6 +28,7 @@ INSTALLED_APPS = [
     'profile_autofill',
     'waitlist',
     'notifications',
+    'bot_sessions',
 ]
 
 MIDDLEWARE = [
@@ -48,7 +51,7 @@ DATABASES = {
 # ── Django REST Framework ─────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'middleware.auth.SimpleJWTAuthentication',
+        'middleware.auth.CustomerJWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -86,8 +89,21 @@ SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
 SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
+
+# ── JWT ─────────────────────────────────────────────────────────────────────────────
+# Must match backend/ SIMPLE_JWT exactly so tokens are interoperable.
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'SIGNING_KEY': SECRET_KEY,  # same key as backend/
+}

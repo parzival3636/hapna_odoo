@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { customerApi } from "@/lib/customer-api";
+import { fetchApi } from "@/lib/api";
 
 interface Props {
   serviceId: string;
@@ -25,18 +25,11 @@ export default function StepDatePicker({
   useEffect(() => {
     async function loadAvail() {
       try {
-        const today = new Date().toISOString().split("T")[0];
-        const params = new URLSearchParams({ from: today, count: "30" });
-        if (resourceId) params.set("resource_id", resourceId);
-        const data = await customerApi(
-          `/services/${serviceId}/next-available/?${params}`,
+        const data = await fetchApi(
+          `/services/${serviceId}/available-dates/`,
           { requireAuth: false }
         );
-        setAvailableDates(
-          (data.next_available_dates || []).map((d: any) =>
-            typeof d === "string" ? d : d.date
-          )
-        );
+        setAvailableDates(data || []);
       } catch {
         /* empty */
       }

@@ -24,7 +24,7 @@ from .serializers import (
     BookingStatusSerializer,
 )
 from slots.models import SlotHold
-from services.availability import compute_slot_availability
+from services.availability import find_next_available_dates, compute_slot_availability
 
 
 def _assert_owns_booking(booking, request):
@@ -98,19 +98,11 @@ class CustomerBookingCreateView(APIView):
         except Service.DoesNotExist:
             return Response({'error': True, 'code': 'SERVICE_NOT_FOUND'}, status=404)
 
-        # ── 3. Race-condition capacity guard ─────────────────────────────────
-        slots = compute_slot_availability(service_id, slot_date, resource_id)
-        start_str = str(slot_start)[:5]
-        end_str = str(slot_end)[:5]
-        matching = [s for s in slots if s['start'] == start_str and s['end'] == end_str]
-
-        if not matching or matching[0]['remaining'] < capacity_booked:
-            remaining = matching[0]['remaining'] if matching else 0
-            return Response(
-                {'error': True, 'code': 'SLOT_FULL',
-                 'message': f'Slot no longer has enough capacity. {remaining} seat(s) left.'},
-                status=status.HTTP_409_CONFLICT,
-            )
+        # ── 3. NOTE: No pre-check via compute_slot_availability here. ──────────
+        # That function counts active *holds* (including this user's own hold)
+        # as consumed capacity, which produces a false SLOT_FULL 409.
+        # The definitive capacity guard is inside the select_for_update block
+        # below (step 5), which only counts committed bookings under a DB lock.
 
         # ── 4. Determine initial status ──────────────────────────────────────
         # pending_payment   → if advance payment required
@@ -126,8 +118,36 @@ class CustomerBookingCreateView(APIView):
             initial_status = 'confirmed'
             initial_payment_status = 'unpaid'
 
-        # ── 5. Atomic transaction ────────────────────────────────────────────
+        # ── 5. Atomic transaction with hard lock ─────────────────────────────
         with transaction.atomic():
+            # Layer 3 — Hard lock: select_for_update blocks concurrent writes
+            # to this service+date+slot while we check & insert.
+            locked_bookings = list(
+                Booking.objects.select_for_update(nowait=False).filter(
+                    service_id=service_id,
+                    slot_date=slot_date,
+                    slot_start=slot_start,
+                    status__in=['pending', 'confirmed'],
+                )
+            )
+
+            # Re-check capacity under lock (race-condition guard)
+            already_booked = sum(b.capacity_booked for b in locked_bookings)
+            svc = Service.objects.get(id=service_id)
+            service_capacity = svc.capacity_per_slot or svc.max_capacity or 1
+            if already_booked + capacity_booked > service_capacity:
+                # Compute alternatives inside same request so frontend shows suggestions
+                alternatives = find_next_available_dates(service_id, slot_date, count=3)
+                return Response(
+                    {
+                        'error': True,
+                        'code': 'SLOT_FULL',
+                        'message': 'This slot just filled. Here are nearby alternatives.',
+                        'alternatives': alternatives,
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
             booking = Booking.objects.create(
                 service_id=service_id,
                 customer_id=request.user.user_id,

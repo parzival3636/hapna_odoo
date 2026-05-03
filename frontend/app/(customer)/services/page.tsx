@@ -82,10 +82,10 @@ export default function CustomerServicesPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
-              href="/profile"
+              href="/bookings"
               className="px-3 py-2 rounded-lg text-sm text-[#94a3b8] hover:text-white hover:bg-[rgba(255,255,255,0.05)] transition-all"
             >
-              Profile
+              My Bookings
             </Link>
             <button
               onClick={handleSignOut}

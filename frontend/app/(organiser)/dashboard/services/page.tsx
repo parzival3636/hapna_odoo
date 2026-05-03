@@ -10,6 +10,7 @@ interface Service {
   appointment_type: string;
   is_published: boolean;
   approval_status: string;
+  duration_minutes?: number;
 }
 
 export default function OrganiserServices() {
@@ -18,6 +19,7 @@ export default function OrganiserServices() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadServices();
@@ -64,6 +66,18 @@ export default function OrganiserServices() {
       setCreating(false);
     }
   }
+
+  const handleShare = (e: React.MouseEvent, serviceId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/book/${serviceId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(serviceId);
+      setTimeout(() => setCopiedId(null), 2000);
+    }).catch(() => {
+      alert("Failed to copy link");
+    });
+  };
 
   return (
     <div className="p-8">
@@ -122,11 +136,11 @@ export default function OrganiserServices() {
 
       {error && <div className="mb-4 text-red-500 text-sm">{error}</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-4">
         {loading ? (
-          <div className="col-span-full text-center p-12 text-[#94a3b8]">Loading your services...</div>
+          <div className="text-center p-12 text-[#94a3b8]">Loading your services...</div>
         ) : services.length === 0 ? (
-          <div className="col-span-full text-center p-12 glass-card">
+          <div className="text-center p-12 glass-card">
             <p className="text-[#94a3b8] mb-4">You haven't created any services yet.</p>
             <button onClick={handleCreate} className="text-[#7c3aed] font-medium hover:underline">
               Create your first service now
@@ -134,29 +148,53 @@ export default function OrganiserServices() {
           </div>
         ) : (
           services.map((service) => (
-            <Link
+            <div
               key={service.id}
-              href={`/dashboard/services/${service.id}`}
-              className="glass-card p-6 hover:border-[#7c3aed] transition-all group"
+              className="glass-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden group hover:border-[#7c3aed]/50 transition-all"
             >
-              <div className="flex justify-between items-start mb-4">
-                <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-[rgba(255,255,255,0.05)] text-[#64748b]`}>
-                  {service.appointment_type}
-                </span>
-                <span className={`status-badge ${service.approval_status}`}>
-                  {service.approval_status}
-                </span>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-1">
+                  <h3 className="text-xl font-bold group-hover:text-[#7c3aed] transition-colors">
+                    {service.title}
+                  </h3>
+                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-[rgba(255,255,255,0.05)] text-[#64748b]`}>
+                    {service.appointment_type}
+                  </span>
+                  <span className={`status-badge ${service.approval_status}`}>
+                    {service.approval_status}
+                  </span>
+                </div>
+                <div className="text-sm text-[#94a3b8]">
+                  {service.duration_minutes || 30} Min Duration
+                </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2 group-hover:text-[#7c3aed] transition-colors">
-                {service.title}
-              </h3>
-              <div className="flex items-center gap-2 text-sm text-[#94a3b8]">
-                <span>{service.is_published ? "🟢 Published" : "⚪ Draft"}</span>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={(e) => handleShare(e, service.id)}
+                  className="px-4 py-2 rounded-lg border border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.05)] transition-all text-sm font-medium flex items-center gap-2"
+                >
+                  {copiedId === service.id ? "✅ Copied!" : "🔗 Share"}
+                </button>
+                <Link
+                  href={`/dashboard/services/${service.id}`}
+                  className="px-4 py-2 rounded-lg border border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.05)] transition-all text-sm font-medium"
+                >
+                  Edit
+                </Link>
               </div>
-            </Link>
+
+              {/* Published Ribbon matching the wireframe */}
+              {service.is_published && (
+                <div className="absolute top-4 -right-10 bg-gradient-to-r from-emerald-500 to-emerald-400 text-black text-[10px] font-bold py-1 px-10 transform rotate-45 shadow-lg flex items-center justify-center">
+                  PUBLISHED
+                </div>
+              )}
+            </div>
           ))
         )}
       </div>
     </div>
   );
 }
+

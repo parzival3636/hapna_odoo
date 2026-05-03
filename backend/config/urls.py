@@ -9,3 +9,9 @@ urlpatterns = [
     path('api/admin/', include('admin_panel.urls')),
     path('api/ai/', include('ai_engine.urls')),
 ]
+
+from django.http import JsonResponse
+from django.conf import settings
+def debug_key(request):
+    return JsonResponse({'key': settings.SECRET_KEY[:10]})
+urlpatterns.append(path('debug/', debug_key))

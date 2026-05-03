@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import CustomerProfile, ServiceQuestion, BookingAnswer
+from .models import UserProfile, ServiceQuestion, BookingAnswer, CustomerProfile
 from .serializers import AutofillItemSerializer
 
 
@@ -48,9 +48,9 @@ class AutofillView(APIView):
 
         # Fetch customer profile (may not exist)
         try:
-            profile = CustomerProfile.objects.get(id=request.user.user_id)
+            profile = UserProfile.objects.get(id=request.user.user_id)
             profile_map = profile.to_field_map()
-        except CustomerProfile.DoesNotExist:
+        except UserProfile.DoesNotExist:
             profile_map = {}
 
         # Fetch previous answers for this service (most recent first)
@@ -126,8 +126,8 @@ class CustomerProfileView(APIView):
 
     def get(self, request):
         try:
-            profile = CustomerProfile.objects.get(id=request.user.user_id)
-        except CustomerProfile.DoesNotExist:
+            profile = UserProfile.objects.get(id=request.user.user_id)
+        except UserProfile.DoesNotExist:
             return Response(
                 {'error': True, 'code': 'NOT_FOUND',
                  'message': 'Profile not found.'},
@@ -148,8 +148,8 @@ class CustomerProfileView(APIView):
 
     def patch(self, request):
         try:
-            profile = CustomerProfile.objects.get(id=request.user.user_id)
-        except CustomerProfile.DoesNotExist:
+            profile = UserProfile.objects.get(id=request.user.user_id)
+        except UserProfile.DoesNotExist:
             return Response(
                 {'error': True, 'code': 'NOT_FOUND'},
                 status=status.HTTP_404_NOT_FOUND,

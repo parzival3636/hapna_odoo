@@ -17,7 +17,10 @@ Used by:
   - ServiceNextAvailableView (GET /api/services/<id>/next-available/)
   - SlotHoldCreateView       (capacity guard before creating a hold)
 """
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+import json
+import requests
+import zoneinfo
 from django.db import connection
 from django.utils import timezone
 
@@ -37,6 +40,10 @@ LOOK_AHEAD_DAYS = 60   # how far forward next-available scans
 def _status_label(remaining: int, capacity: int) -> str:
     if remaining <= 0:
         return _STATUS_FULL
+    # For single-seat services, 'last_1' on every slot is misleading
+    # — just show green 'available'. Only use urgency labels for group capacity.
+    if capacity == 1:
+        return _STATUS_AVAILABLE
     if remaining == 1:
         return _STATUS_LAST_1
     if remaining == 2:
@@ -49,7 +56,10 @@ def _get_service_row(service_id: str) -> dict | None:
     with connection.cursor() as cur:
         cur.execute(
             """
-            SELECT id, max_capacity, appointment_type, duration_minutes
+            SELECT id, capacity_per_slot, appointment_type, duration_minutes,
+                   excluded_days, schedule_days, schedule_start_date,
+                   google_calendar_block_enabled, created_by_id, timezone,
+                   working_start_time, working_end_time
             FROM services_service
             WHERE id = %s AND is_published = true
             """,
@@ -60,71 +70,39 @@ def _get_service_row(service_id: str) -> dict | None:
         return None
     return {
         'id': str(row[0]),
-        'max_capacity': row[1],  # None → unlimited (treat as 1 for single appointments)
+        'capacity_per_slot': row[1],
         'appointment_type': row[2],
         'duration_minutes': row[3],
+        'excluded_days': row[4] if row[4] is not None else [],
+        'schedule_days': row[5],
+        'schedule_start_date': row[6],
+        'google_calendar_block_enabled': row[7],
+        'created_by_id': str(row[8]) if row[8] else None,
+        'timezone': row[9],
+        'working_start_time': row[10],  # time or None
+        'working_end_time': row[11],    # time or None
     }
 
 
-def _get_template_slots(service_id: str, target_date: date) -> list[dict]:
+def _generate_working_hour_slots(service: dict, target_date: date) -> list[dict]:
     """
-    Return raw time-slot templates for the given date from schedules.
-    Checks weekly_slots (by day_of_week) and flexible_slots (by specific_date).
+    Generate time slot chunks from working_start_time → working_end_time
+    using duration_minutes steps. This mirrors exactly what the backend's
+    ServiceViewSet.slots() endpoint does, ensuring hold validation matches.
     """
+    from datetime import time as time_type
+    work_start = service['working_start_time'] or time_type(9, 0)
+    work_end   = service['working_end_time']   or time_type(17, 0)
+    duration   = timedelta(minutes=service['duration_minutes'] or 30)
+
+    slot_start_dt = datetime.combine(target_date, work_start)
+    slot_end_dt   = datetime.combine(target_date, work_end)
+
     slots = []
-    with connection.cursor() as cur:
-        # Weekly slots
-        cur.execute(
-            """
-            SELECT ws.start_time, ws.end_time
-            FROM services_weeklyslot ws
-            JOIN services_schedule s ON s.id = ws.schedule_id
-            WHERE s.service_id = %s
-              AND ws.day_of_week = %s
-            ORDER BY ws.start_time
-            """,
-            [service_id, target_date.weekday() + 1 if target_date.weekday() < 6 else 0],
-            # Python weekday(): Mon=0..Sun=6 → DB: Sun=0..Sat=6
-        )
-        # Recalculate: DB day_of_week: 0=Sun,1=Mon..6=Sat
-        # Python date.weekday(): 0=Mon..6=Sun
-        # Mapping: python 6→DB 0, python 0→DB 1 ... python 5→DB 6
-    
-    with connection.cursor() as cur:
-        python_dow = target_date.weekday()  # 0=Mon..6=Sun
-        db_dow = (python_dow + 1) % 7       # 0=Sun..6=Sat
-        cur.execute(
-            """
-            SELECT ws.start_time, ws.end_time
-            FROM services_weeklyslot ws
-            JOIN services_schedule s ON s.id = ws.schedule_id
-            WHERE s.service_id = %s
-              AND ws.day_of_week = %s
-            ORDER BY ws.start_time
-            """,
-            [service_id, db_dow],
-        )
-        for row in cur.fetchall():
-            slots.append({'start': row[0], 'end': row[1]})
-
-        # Flexible slots
-        cur.execute(
-            """
-            SELECT fs.start_time, fs.end_time
-            FROM services_flexibleslot fs
-            JOIN services_schedule s ON s.id = fs.schedule_id
-            WHERE s.service_id = %s
-              AND fs.start_date <= %s AND fs.end_date >= %s
-            ORDER BY fs.start_time
-            """,
-            [service_id, target_date, target_date],
-        )
-        for row in cur.fetchall():
-            # Avoid duplicates if both weekly + flexible define same time
-            entry = {'start': row[0], 'end': row[1]}
-            if entry not in slots:
-                slots.append(entry)
-
+    current = slot_start_dt
+    while current + duration <= slot_end_dt:
+        slots.append({'start': current.time(), 'end': (current + duration).time()})
+        current += duration
     return slots
 
 
@@ -181,6 +159,91 @@ def _count_held(service_id: str, target_date: date, start_time, end_time,
         return int(cur.fetchone()[0])
 
 
+def _fetch_google_busy_slots(user_id: str, target_date: date, tz_str: str) -> list[dict]:
+    """Fetch busy slots for a given user on a target date directly from Google API."""
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            SELECT token, refresh_token, client_id, client_secret
+            FROM users_googlecredential
+            WHERE user_id = %s
+            """,
+            [user_id]
+        )
+        row = cur.fetchone()
+        
+    if not row:
+        return []
+        
+    token, refresh_token, client_id, client_secret = row
+    
+    # We query the entire day for busy slots in the local timezone (converted to UTC for the request)
+    try:
+        local_tz = zoneinfo.ZoneInfo(tz_str)
+    except Exception:
+        local_tz = timezone.get_current_timezone()
+        
+    start_dt = datetime.combine(target_date, datetime.min.time(), tzinfo=local_tz)
+    end_dt = datetime.combine(target_date, datetime.max.time(), tzinfo=local_tz)
+    
+    time_min = start_dt.isoformat()
+    time_max = end_dt.isoformat()
+    
+    def _call_freebusy(access_token):
+        return requests.post(
+            "https://www.googleapis.com/calendar/v3/freeBusy",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "timeMin": time_min,
+                "timeMax": time_max,
+                "items": [{"id": "primary"}]
+            },
+            timeout=5
+        )
+        
+    res = _call_freebusy(token)
+    
+    if res.status_code == 401 and refresh_token:
+        # Token expired, refresh it
+        refresh_res = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token"
+            },
+            timeout=5
+        )
+        if refresh_res.ok:
+            new_token = refresh_res.json().get('access_token')
+            if new_token:
+                with connection.cursor() as cur:
+                    cur.execute(
+                        "UPDATE users_googlecredential SET token = %s, updated_at = NOW() WHERE user_id = %s",
+                        [new_token, user_id]
+                    )
+                res = _call_freebusy(new_token)
+                
+    if not res.ok:
+        return []
+        
+    data = res.json()
+    raw_busy_slots = data.get('calendars', {}).get('primary', {}).get('busy', [])
+    
+    parsed_slots = []
+    for slot in raw_busy_slots:
+        try:
+            # Parse Google's ISO8601 string
+            s_dt = datetime.fromisoformat(slot['start'].replace('Z', '+00:00')).astimezone(local_tz)
+            e_dt = datetime.fromisoformat(slot['end'].replace('Z', '+00:00')).astimezone(local_tz)
+            parsed_slots.append({'start': s_dt.time(), 'end': e_dt.time()})
+        except ValueError:
+            pass
+            
+    return parsed_slots
+
+
 def compute_slot_availability(
     service_id: str,
     target_date: date,
@@ -193,20 +256,59 @@ def compute_slot_availability(
     if not service:
         return []
 
-    capacity = service['max_capacity'] or 1  # treat NULL as single-seat
+    # 1. Enforce excluded_days
+    excluded = service['excluded_days']
+    if isinstance(excluded, str):
+        try:
+            excluded = json.loads(excluded)
+        except ValueError:
+            excluded = []
+    if target_date.weekday() in excluded:
+        return []
 
-    templates = _get_template_slots(service_id, target_date)
+    # 2. Enforce schedule limits
+    start_date = service['schedule_start_date']
+    if not start_date:
+        start_date = timezone.now().date()
+    end_date = start_date + timedelta(days=service['schedule_days'])
+    
+    if not (start_date <= target_date <= end_date):
+        return []
+
+    capacity = service['capacity_per_slot'] or 1
+
+    # Generate slots using working-hours chunking (same as backend slots/ endpoint)
+    templates = _generate_working_hour_slots(service, target_date)
     if not templates:
         return []
 
+    # 3. Google Calendar Busy Slots
+    busy_blocks = []
+    if service['google_calendar_block_enabled'] and service['created_by_id']:
+        busy_blocks = _fetch_google_busy_slots(service['created_by_id'], target_date, service['timezone'])
+
     result = []
     for tpl in templates:
-        booked = _count_booked(service_id, target_date, tpl['start'], tpl['end'], resource_id)
-        held = _count_held(service_id, target_date, tpl['start'], tpl['end'], resource_id)
-        remaining = max(0, capacity - booked - held)
+        tpl_s = tpl['start']
+        tpl_e = tpl['end']
+        
+        # Check overlaps with Google Calendar
+        is_blocked = False
+        for b in busy_blocks:
+            if max(tpl_s, b['start']) < min(tpl_e, b['end']):
+                is_blocked = True
+                break
+                
+        if is_blocked:
+            remaining = 0
+        else:
+            booked = _count_booked(service_id, target_date, tpl_s, tpl_e, resource_id)
+            held = _count_held(service_id, target_date, tpl_s, tpl_e, resource_id)
+            remaining = max(0, capacity - booked - held)
+            
         result.append({
-            'start': str(tpl['start'])[:5],   # "HH:MM"
-            'end': str(tpl['end'])[:5],
+            'start': str(tpl_s)[:5],   # "HH:MM"
+            'end': str(tpl_e)[:5],
             'remaining': remaining,
             'total_capacity': capacity,
             'status': _status_label(remaining, capacity),
