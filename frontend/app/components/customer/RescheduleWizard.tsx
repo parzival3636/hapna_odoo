@@ -5,6 +5,7 @@ import { customerApi } from "@/lib/customer-api";
 import StepDatePicker from "@/app/(customer)/book/[serviceId]/StepDatePicker";
 import StepSlotGrid from "@/app/(customer)/book/[serviceId]/StepSlotGrid";
 import { useRouter } from "next/navigation";
+import { Loader2, AlertCircle, Calendar, ArrowRight, XCircle } from "lucide-react";
 
 interface Booking {
   id: string;
@@ -94,98 +95,108 @@ export function RescheduleWizard({ booking, maxCapacity }: { booking: Booking; m
   })} at ${state.selectedSlot.start}` : "";
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6 w-full pt-20">
-      <div className="mb-6 flex justify-between items-center">
-        <button
-          onClick={() => {
-            if (state.step === 1) router.back();
-            else if (state.step === 2) update({ step: 1 });
-            else handleBackFromConfirm();
-          }}
-          className="text-sm text-[#94a3b8] hover:text-white transition-colors"
-        >
-          ← Back
-        </button>
-      </div>
-
-      <div className="bg-[rgba(124,58,237,0.1)] border border-[rgba(124,58,237,0.2)] rounded-xl p-4 mb-6 text-center">
-        <p className="text-[#94a3b8] text-sm">Currently scheduled for:</p>
-        <p className="text-white font-medium">{currentLabel}</p>
-      </div>
-
-      {state.step === 1 && (
-        <StepDatePicker
-          serviceId={booking.service_id}
-          resourceId={booking.resource_id}
-          selectedDate={state.selectedDate}
-          onSelect={(date) => update({ selectedDate: date, step: 2 })}
-        />
-      )}
-
-      {state.step === 2 && state.selectedDate && (
-        <StepSlotGrid
-          serviceId={booking.service_id}
-          resourceId={booking.resource_id}
-          date={state.selectedDate}
-          maxCapacity={maxCapacity}
-          state={state as any}
-          update={(patch: any) => {
-            if (patch.step === 2) {
-              patch.step = 3;
-            }
-            update(patch);
-          }}
-          onBack={() => update({ step: 1 })}
-        />
-      )}
-
-      {state.step === 3 && (
-        <div className="glass-card p-6 text-center animate-in fade-in zoom-in-95 duration-200">
-          <h2 className="text-xl font-bold mb-6">Confirm Reschedule</h2>
-          
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="bg-[rgba(255,255,255,0.05)] p-4 rounded-xl flex-1 max-w-[200px]">
-              <p className="text-xs text-[#ef4444] font-medium mb-1 line-through">Old Time</p>
-              <p className="text-sm text-[#94a3b8]">{currentLabel}</p>
-            </div>
-            <div className="text-[#94a3b8]">→</div>
-            <div className="bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.2)] p-4 rounded-xl flex-1 max-w-[200px]">
-              <p className="text-xs text-[#4ade80] font-bold mb-1">New Time</p>
-              <p className="text-sm text-white font-medium">{newLabel}</p>
-            </div>
+    <div className="w-full">
+      <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400">
+            <Calendar className="w-6 h-6" />
           </div>
-
-          {error && (
-            <div className="mb-6 p-4 rounded-xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] text-[#ef4444] text-sm">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-4">
-            <button
-              onClick={handleBackFromConfirm}
-              disabled={isRescheduling}
-              className="flex-1 py-4 rounded-xl font-bold text-sm bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all disabled:opacity-50"
-            >
-              Change Date/Time
-            </button>
-            <button
-              onClick={handleConfirmSwap}
-              disabled={isRescheduling}
-              className="flex-1 py-4 rounded-xl font-bold text-sm bg-gradient-to-r from-[#7c3aed] to-[#2563eb] hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all disabled:opacity-50 flex justify-center items-center gap-2"
-            >
-              {isRescheduling ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                "Confirm Reschedule"
-              )}
-            </button>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Schedule</p>
+            <p className="text-sm font-black text-slate-900">{currentLabel}</p>
           </div>
         </div>
-      )}
+        <div className="px-5 py-2 rounded-pill bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black uppercase tracking-widest">
+          Rescheduling Mode
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-[3rem] p-10 lg:p-14 shadow-card">
+        {state.step === 1 && (
+          <StepDatePicker
+            serviceId={booking.service_id}
+            resourceId={booking.resource_id}
+            selectedDate={state.selectedDate}
+            onSelect={(date) => update({ selectedDate: date, step: 2 })}
+          />
+        )}
+
+        {state.step === 2 && state.selectedDate && (
+          <StepSlotGrid
+            serviceId={booking.service_id}
+            resourceId={booking.resource_id}
+            date={state.selectedDate}
+            maxCapacity={maxCapacity}
+            state={state as any}
+            update={(patch: any) => {
+              if (patch.step === 2) {
+                patch.step = 3;
+              }
+              update(patch);
+            }}
+            onBack={() => update({ step: 1 })}
+          />
+        )}
+
+        {state.step === 3 && (
+          <div className="text-center animate-in fade-in zoom-in-95 duration-500">
+            <div className="w-20 h-20 rounded-[2rem] bg-brand-soft text-brand-primary flex items-center justify-center mx-auto mb-8 shadow-sm">
+              <ArrowRight className="w-10 h-10" />
+            </div>
+            
+            <h2 className="text-2xl font-heading font-black text-slate-900 mb-8 tracking-tight">Confirm Migration</h2>
+            
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-12">
+              <div className="bg-slate-50 border border-slate-100 p-8 rounded-[2rem] flex-1 w-full max-w-[240px]">
+                <p className="text-[10px] text-red-500 font-black uppercase tracking-widest mb-3 line-through">Discarded Slot</p>
+                <p className="text-sm text-slate-500 font-bold">{currentLabel}</p>
+              </div>
+              
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                <ArrowRight className="w-5 h-5" />
+              </div>
+              
+              <div className="bg-emerald-50 border border-emerald-100 p-8 rounded-[2rem] flex-1 w-full max-w-[240px] shadow-sm">
+                <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest mb-3">Target Slot</p>
+                <p className="text-sm text-emerald-700 font-black">{newLabel}</p>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mb-10 p-6 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-shake">
+                <XCircle className="w-5 h-5" />
+                {error}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={handleBackFromConfirm}
+                disabled={isRescheduling}
+                className="flex-1 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50"
+              >
+                Abort & Re-pick
+              </button>
+              <button
+                onClick={handleConfirmSwap}
+                disabled={isRescheduling}
+                className="flex-1 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-brand-primary text-white hover:bg-brand-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex justify-center items-center gap-3 shadow-xl shadow-brand-primary/20"
+              >
+                {isRescheduling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Migrating...
+                  </>
+                ) : (
+                  "Confirm Migration"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
   );
 }

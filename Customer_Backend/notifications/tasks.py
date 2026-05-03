@@ -17,18 +17,64 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
+def _send_email(to, subject, html_body):
+    """Send email via Django SMTP."""
+    from django.core.mail import EmailMultiAlternatives
+    import os
+
+    from_email = os.getenv('EMAIL_HOST_USER', 'rohanlangar31@gmail.com')
+    
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body="Please view this email in an HTML-compatible client.",
+        from_email=from_email,
+        to=[to],
+    )
+    msg.attach_alternative(html_body, "text/html")
+
+    try:
+        msg.send()
+        logger.info(f"Email sent to {to}: {subject}")
+        return True
+    except Exception as e:
+        logger.error(f"Email send failed to {to}: {e}")
+        return False
+
 @shared_task(name='notifications.tasks.send_booking_confirmation', bind=True, max_retries=3)
 def send_booking_confirmation(self, booking_id: str):
     """
-    Send confirmation email/WhatsApp for a newly created / just-paid booking.
-
-    TODO (Person B): implement real Resend email here.
+    Send confirmation email for a newly created / just-paid booking.
     """
     logger.info(f'[notifications] send_booking_confirmation → booking_id={booking_id}')
-    # Stub: just log. Replace with:
-    #   booking = Booking.objects.get(id=booking_id)
-    #   resend.Emails.send({ "to": customer_email, ... })
-    return {'sent': False, 'booking_id': booking_id, 'reason': 'stub'}
+    try:
+        from bookings_customer.models import Booking, Service, UserProfile
+        booking = Booking.objects.get(id=booking_id)
+        service = Service.objects.filter(id=booking.service_id).first()
+        customer = UserProfile.objects.filter(id=booking.customer_id).first()
+        
+        intro_html = f"<p><em>{service.intro_message}</em></p>" if service and getattr(service, 'intro_message', None) else ""
+        conf_html = f"<p><strong>{service.confirmation_message}</strong></p>" if service and getattr(service, 'confirmation_message', None) else ""
+
+        html_body = f"""
+        {intro_html}
+        <h2>Booking Confirmed</h2>
+        <p>Your appointment for <strong>{service.title if service else 'your service'}</strong> is confirmed.</p>
+        <p><strong>Date:</strong> {booking.slot_date}</p>
+        <p><strong>Time:</strong> {booking.slot_start} - {booking.slot_end}</p>
+        <p><strong>Location:</strong> {service.location or 'Online' if service and hasattr(service, 'location') else 'TBD'}</p>
+        <p>Reference: {booking.confirmation_token}</p>
+        {conf_html}
+        """
+
+        subject = f"Booking Confirmed — {service.title if service else 'Appointment'}"
+        if customer and customer.email:
+            success = _send_email(customer.email, subject, html_body)
+            return {'sent': success, 'booking_id': booking_id}
+        else:
+            return {'sent': False, 'booking_id': booking_id, 'reason': 'no_email'}
+    except Exception as e:
+        logger.error(f"send_booking_confirmation failed: {e}")
+        self.retry(exc=e)
 
 
 @shared_task(name='notifications.tasks.send_booking_cancellation', bind=True, max_retries=3)

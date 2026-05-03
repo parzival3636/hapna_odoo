@@ -1,7 +1,8 @@
 """Reports views — analytics and no-show risk for organiser dashboard."""
 from datetime import datetime, timedelta
 from django.db import connection
-from django.db.models import Count, Q, F
+from django.db.models import Count, Q, F, Sum, DecimalField
+from django.db.models.functions import Coalesce
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from bookings.models import Booking, Service
@@ -15,8 +16,8 @@ def get_organiser_services(user):
 
 class ReportsSummaryView(APIView):
     """
-    GET /api/reports/summary/?service=<id>
-    Returns: totals, month comparison, rates.
+    GET /api/reports/summary/?service=<id>&range=<today|this_week|this_month|last_30_days>
+    Returns: totals, month comparison, rates, revenue.
     """
 
     def get(self, request):
@@ -26,38 +27,53 @@ class ReportsSummaryView(APIView):
             service_ids = [service_filter]
 
         now = datetime.now()
+        range_type = request.query_params.get('range', 'this_month')
+        
+        # Default to this month for comparison
         current_month_start = now.replace(day=1, hour=0, minute=0, second=0)
         last_month_start = (current_month_start - timedelta(days=1)).replace(day=1)
 
         base_qs = Booking.objects.filter(service_id__in=service_ids)
 
-        # Current month
+        # Totals (Current Month for context)
         current_qs = base_qs.filter(slot_date__gte=current_month_start.date())
         current_total = current_qs.count()
-        current_confirmed = current_qs.filter(status='confirmed').count()
+        current_confirmed = current_qs.filter(status__in=['confirmed', 'completed']).count()
         current_cancelled = current_qs.filter(status='cancelled').count()
         current_no_show = current_qs.filter(status='no_show').count()
 
-        # Last month
+        # Revenue (Total)
+        total_revenue = base_qs.filter(status__in=['confirmed', 'completed']).aggregate(
+            total=Coalesce(Sum('service__booking_fee'), 0, output_field=DecimalField())
+        )['total']
+
+        # Last month comparison
         last_qs = base_qs.filter(
             slot_date__gte=last_month_start.date(),
             slot_date__lt=current_month_start.date(),
         )
         last_total = last_qs.count()
+        last_revenue = last_qs.filter(status__in=['confirmed', 'completed']).aggregate(
+            total=Coalesce(Sum('service__booking_fee'), 0, output_field=DecimalField())
+        )['total']
 
-        # Percentage change
-        pct_change = 0
+        # Percentage changes
+        pct_change_bookings = 0
         if last_total > 0:
-            pct_change = round(((current_total - last_total) / last_total) * 100, 1)
+            pct_change_bookings = round(((current_total - last_total) / last_total) * 100, 1)
+        
+        pct_change_revenue = 0
+        if last_revenue > 0:
+            pct_change_revenue = round(((total_revenue - last_revenue) / last_revenue) * 100, 1)
 
         # Rates
         cancellation_rate = round((current_cancelled / current_total * 100), 1) if current_total else 0
         no_show_rate = round((current_no_show / current_total * 100), 1) if current_total else 0
 
-        # Upcoming 7 days
+        # Upcoming 5 days
         upcoming = base_qs.filter(
             slot_date__gte=now.date(),
-            slot_date__lte=(now + timedelta(days=7)).date(),
+            slot_date__lte=(now + timedelta(days=5)).date(),
             status__in=['confirmed', 'pending'],
         ).order_by('slot_date', 'slot_start')[:5]
 
@@ -77,7 +93,9 @@ class ReportsSummaryView(APIView):
         return Response({
             'current_month_meetings': current_total,
             'last_month_meetings': last_total,
-            'pct_change': pct_change,
+            'total_revenue': float(total_revenue),
+            'pct_change_bookings': pct_change_bookings,
+            'pct_change_revenue': pct_change_revenue,
             'cancellation_rate': cancellation_rate,
             'no_show_rate': no_show_rate,
             'upcoming_7_days': upcoming_list,
@@ -86,7 +104,7 @@ class ReportsSummaryView(APIView):
 
 class ReportsChartsView(APIView):
     """
-    GET /api/reports/charts/?service=<id>
+    GET /api/reports/charts/?service=<id>&range=<days>
     Returns: daily_bookings, by_service, by_status, peak_hours.
     """
 
@@ -96,26 +114,36 @@ class ReportsChartsView(APIView):
         if service_filter:
             service_ids = [service_filter]
 
+        range_days = int(request.query_params.get('range', 30))
         base_qs = Booking.objects.filter(service_id__in=service_ids)
         now = datetime.now()
-        thirty_days_ago = now - timedelta(days=30)
+        start_date = now - timedelta(days=range_days)
 
-        # Daily bookings (last 30 days)
+        # Daily bookings
         daily = (
-            base_qs.filter(slot_date__gte=thirty_days_ago.date())
+            base_qs.filter(slot_date__gte=start_date.date())
             .values('slot_date')
-            .annotate(count=Count('id'))
+            .annotate(
+                count=Count('id'), 
+                revenue=Coalesce(Sum('service__booking_fee'), 0, output_field=DecimalField())
+            )
             .order_by('slot_date')
         )
-        daily_bookings = [{'date': str(d['slot_date']), 'count': d['count']} for d in daily]
+        daily_bookings = [
+            {
+                'date': str(d['slot_date']), 
+                'count': d['count'],
+                'revenue': float(d['revenue'] or 0)
+            } for d in daily
+        ]
 
         # By service
-        by_service = []
-        for sid in service_ids:
-            svc = Service.objects.filter(id=sid).first()
-            count = base_qs.filter(service_id=sid).count()
-            if svc:
-                by_service.append({'title': svc.title, 'count': count})
+        by_service = (
+            base_qs.values('service__title')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+        service_data = [{'title': s['service__title'], 'count': s['count']} for s in by_service]
 
         # By status
         by_status = (
@@ -127,30 +155,31 @@ class ReportsChartsView(APIView):
 
         # Peak hours — raw SQL for EXTRACT
         peak_hours = []
-        with connection.cursor() as cursor:
-            placeholders = ','.join(['%s'] * len(service_ids))
-            cursor.execute(f"""
-                SELECT
-                    EXTRACT(DOW FROM slot_date) AS dow,
-                    EXTRACT(HOUR FROM slot_start) AS hour,
-                    COUNT(*) AS cnt
-                FROM bookings
-                WHERE service_id::text IN ({placeholders})
-                  AND status IN ('confirmed', 'completed')
-                GROUP BY dow, hour
-                ORDER BY cnt DESC
-                LIMIT 50
-            """, [str(s) for s in service_ids])
-            for row in cursor.fetchall():
-                peak_hours.append({
-                    'day_of_week': int(row[0]),
-                    'hour': int(row[1]),
-                    'count': row[2],
-                })
+        if service_ids:
+            with connection.cursor() as cursor:
+                placeholders = ','.join(['%s'] * len(service_ids))
+                cursor.execute(f"""
+                    SELECT
+                        EXTRACT(DOW FROM slot_date) AS dow,
+                        EXTRACT(HOUR FROM slot_start) AS hour,
+                        COUNT(*) AS cnt
+                    FROM bookings_booking
+                    WHERE service_id::text IN ({placeholders})
+                      AND status IN ('confirmed', 'completed')
+                    GROUP BY dow, hour
+                    ORDER BY cnt DESC
+                    LIMIT 50
+                """, [str(s) for s in service_ids])
+                for row in cursor.fetchall():
+                    peak_hours.append({
+                        'day_of_week': int(row[0]),
+                        'hour': int(row[1]),
+                        'count': row[2],
+                    })
 
         return Response({
             'daily_bookings': daily_bookings,
-            'by_service': by_service,
+            'by_service': service_data,
             'by_status': status_data,
             'peak_hours': peak_hours,
         })

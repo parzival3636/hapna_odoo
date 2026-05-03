@@ -1,8 +1,26 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { fetchApi } from "@/lib/api";
+import { 
+  Save, 
+  Trash2, 
+  Plus, 
+  Settings, 
+  Users, 
+  Clock, 
+  MapPin, 
+  HelpCircle, 
+  Sparkles, 
+  Globe, 
+  CheckCircle2,
+  Calendar as CalendarIcon,
+  AlertTriangle,
+  ChevronRight,
+  Info,
+  ChevronLeft
+} from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
 
 interface ServiceQuestion {
@@ -248,77 +266,98 @@ export default function ServiceConfig() {
   if (!service) return <div className="p-8">Service not found.</div>;
 
   return (
-    <div className="p-8 max-w-5xl">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold">{service.title}</h1>
-            <span className={`status-badge ${service.approval_status}`}>
-              {service.approval_status}
+    <div className="max-w-6xl mx-auto py-12">
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 px-4 sm:px-0">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="px-3 py-1 rounded-pill bg-slate-100 text-slate-900 text-[10px] font-black uppercase tracking-widest border border-slate-200">
+              {service.appointment_type} Architecture
             </span>
+            {service.is_published ? (
+              <span className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Node
+              </span>
+            ) : (
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                Draft State
+              </span>
+            )}
           </div>
-          <p className="text-[#94a3b8]">Configure your service listing and booking rules</p>
+          <h1 className="text-4xl font-heading font-black text-slate-900 tracking-tight">
+            {service.title}
+          </h1>
+          <p className="text-slate-600 font-medium mt-2">Configure your service listing and booking rules</p>
         </div>
-        <div className="flex gap-3">
+        
+        <div className="flex items-center gap-4">
           <button
             onClick={togglePublish}
-            disabled={service.approval_status !== "approved"}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              service.is_published
-                ? "bg-[rgba(255,255,255,0.05)] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
-                : "bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={service.approval_status !== "approved" || saving}
+            className={`px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+              service.is_published 
+                ? "bg-slate-100 text-slate-700 hover:bg-slate-200" 
+                : "bg-brand-primary text-white shadow-xl shadow-brand-primary/20 hover:scale-[1.02] disabled:opacity-50"
             }`}
           >
-            {service.is_published ? "Unpublish" : "Publish Listing"}
+            {service.is_published ? "Unpublish Listing" : "Publish Listing"}
+          </button>
+          <button
+            onClick={handleUpdate}
+            disabled={saving}
+            className="px-8 py-4 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-brand-primary transition-all shadow-xl shadow-slate-300 flex items-center gap-3"
+          >
+            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Commit Changes"}
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[rgba(255,255,255,0.08)] mb-8 overflow-x-auto">
-        {["details", "questions", "resources", "options", "misc"].map((tab) => (
+      <div className="flex border-b border-slate-200 mb-12 overflow-x-auto gap-8 px-4 sm:px-0">
+        {["details", "questions", "misc"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-4 text-sm font-medium border-b-2 transition-all capitalize whitespace-nowrap ${
+            className={`px-2 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${
               activeTab === tab
-                ? "border-[#7c3aed] text-white"
-                : "border-transparent text-[#64748b] hover:text-[#94a3b8]"
+                ? "border-brand-primary text-brand-primary"
+                : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
-            {tab}
+            {tab === "details" ? "Configuration" : tab === "questions" ? "Intake Questions" : "SEO & Misc"}
           </button>
         ))}
       </div>
 
-      <div className="glass-card p-8">
+      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-10 lg:p-16 shadow-card">
         {/* ═══════ DETAILS TAB ═══════ */}
         {activeTab === "details" && (
           <form onSubmit={handleUpdate} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[#94a3b8]">Title</label>
+                <label className="text-sm font-bold text-slate-900">Title</label>
                 <input
                   type="text"
                   value={service.title}
                   onChange={(e) => setService({ ...service, title: e.target.value })}
-                  className="auth-input"
+                  className="auth-input text-slate-900 border-slate-200"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[#94a3b8]">Duration (minutes)</label>
+                <label className="text-sm font-bold text-slate-900">Duration (minutes)</label>
                 <input
                   type="number"
                   value={service.duration_minutes}
                   onChange={(e) =>
                     setService({ ...service, duration_minutes: parseInt(e.target.value) })
                   }
-                  className="auth-input"
+                  className="auth-input text-slate-900 border-slate-200"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[#94a3b8]">Location Type</label>
+                <label className="text-sm font-bold text-slate-900">Location Type</label>
                 <select
                   value={service.location}
                   onChange={(e) => {
@@ -329,7 +368,7 @@ export default function ServiceConfig() {
                       online_meeting_provider: newLoc === 'Online' ? service.online_meeting_provider : 'none',
                     });
                   }}
-                  className="auth-input"
+                  className="auth-input text-slate-900 border-slate-200"
                 >
                   <option value="Online">Online</option>
                   <option value="Physical">Physical</option>
@@ -337,12 +376,12 @@ export default function ServiceConfig() {
               </div>
               {service.location !== 'Online' && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#94a3b8]">Venue Address</label>
+                  <label className="text-sm font-bold text-slate-900">Venue Address</label>
                   <input
                     type="text"
                     value={service.venue_address || ""}
                     onChange={(e) => setService({ ...service, venue_address: e.target.value })}
-                    className="auth-input"
+                    className="auth-input text-slate-900 border-slate-200"
                     placeholder="e.g. Office address"
                   />
                 </div>
@@ -351,266 +390,292 @@ export default function ServiceConfig() {
 
             {/* ══ Online Meeting Provider Picker ══ */}
             {service.location === 'Online' && (
-              <div className="space-y-4 p-6 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
+              <div className="space-y-4 p-6 rounded-2xl border border-slate-100 bg-slate-50">
                 <div>
-                  <h3 className="text-sm font-semibold text-white mb-1">Video Meeting Platform</h3>
-                  <p className="text-xs text-[#64748b]">Choose a platform — a meeting link will be auto-generated for every booking</p>
+                  <h3 className="text-sm font-bold text-slate-900 mb-1">Video Meeting Platform</h3>
+                  <p className="text-xs text-slate-500 font-medium">Choose a platform — a meeting link will be auto-generated for every booking</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Jitsi Meet Card */}
                   <button
                     type="button"
                     onClick={() => setService({ ...service, online_meeting_provider: 'jitsi' })}
-                    className={`relative p-5 rounded-xl border-2 transition-all text-left group ${
+                    className={`relative p-5 rounded-2xl border-2 transition-all text-left group ${
                       service.online_meeting_provider === 'jitsi'
-                        ? 'border-[#00B2FF] bg-[rgba(0,178,255,0.08)] shadow-[0_0_20px_rgba(0,178,255,0.15)]'
-                        : 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(255,255,255,0.04)]'
+                        ? 'border-brand-primary bg-brand-primary-soft shadow-lg shadow-brand-primary/5'
+                        : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     {service.online_meeting_provider === 'jitsi' && (
-                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#00B2FF] flex items-center justify-center">
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-brand-primary flex items-center justify-center">
                         <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
                     )}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#1b3d5c] to-[#00B2FF] flex items-center justify-center shadow-lg">
-                        <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
+                      <div className="w-10 h-10 rounded-lg bg-brand-primary flex items-center justify-center shadow-lg">
+                        <Globe className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <span className="text-sm font-semibold text-white">Jitsi Meet</span>
-                        <p className="text-[10px] text-[#64748b] mt-0.5">meet.jit.si</p>
+                        <span className="text-sm font-bold text-slate-900">Jitsi Meet</span>
+                        <p className="text-[10px] text-slate-500 mt-0.5">meet.jit.si</p>
                       </div>
                     </div>
-                    <p className="text-xs text-[#94a3b8] leading-relaxed">Auto-generate a Jitsi meeting link for each booking. Jitsi is 100% free and requires no account.</p>
+                    <p className="text-xs text-slate-600 leading-relaxed font-medium">Auto-generate a Jitsi meeting link for each booking. Jitsi is 100% free and requires no account.</p>
                   </button>
 
                   {/* Zoom Card */}
                   <button
                     type="button"
                     onClick={() => setService({ ...service, online_meeting_provider: 'zoom' })}
-                    className={`relative p-5 rounded-xl border-2 transition-all text-left group ${
+                    className={`relative p-5 rounded-2xl border-2 transition-all text-left group ${
                       service.online_meeting_provider === 'zoom'
-                        ? 'border-[#2d8cff] bg-[rgba(45,140,255,0.08)] shadow-[0_0_20px_rgba(45,140,255,0.15)]'
-                        : 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(255,255,255,0.04)]'
+                        ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/5'
+                        : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     {service.online_meeting_provider === 'zoom' && (
-                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#2d8cff] flex items-center justify-center">
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
                         <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
                     )}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#0b5cff] to-[#2d8cff] flex items-center justify-center shadow-lg">
-                        <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M4 4h10v10H4V4zm12 2l4-2v12l-4-2V6z"/>
-                        </svg>
+                      <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center shadow-lg">
+                        <Sparkles className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <span className="text-sm font-semibold text-white">Zoom</span>
-                        <p className="text-[10px] text-[#64748b] mt-0.5">zoom.us</p>
+                        <span className="text-sm font-bold text-slate-900">Zoom</span>
+                        <p className="text-[10px] text-slate-500 mt-0.5">zoom.us</p>
                       </div>
                     </div>
-                    <p className="text-xs text-[#94a3b8] leading-relaxed">Auto-generate a Zoom meeting ID for each booking. Customers receive the join link via email.</p>
+                    <p className="text-xs text-slate-600 leading-relaxed font-medium">Auto-generate a Zoom meeting ID for each booking. Customers receive the join link via email.</p>
                   </button>
                 </div>
-
-                {/* Auto-create toggle */}
-                {service.online_meeting_provider !== 'none' && (
-                  <div className="flex items-center justify-between pt-2 border-t border-[rgba(255,255,255,0.06)]">
-                    <div>
-                      <span className="text-sm font-medium text-white">Auto-create meeting on booking</span>
-                      <p className="text-xs text-[#64748b] mt-0.5">Meeting link will be generated and emailed automatically</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setService({ ...service, meeting_auto_create: !service.meeting_auto_create })}
-                      className={`relative w-11 h-6 rounded-full transition-all duration-200 ${
-                        service.meeting_auto_create ? 'bg-[#7c3aed]' : 'bg-[rgba(255,255,255,0.15)]'
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
-                          service.meeting_auto_create ? 'translate-x-[22px]' : 'translate-x-0.5'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                )}
-
-                {/* Selected provider summary */}
-                {service.online_meeting_provider !== 'none' && (
-                  <div className={`flex items-center gap-3 p-3 rounded-lg ${
-                    service.online_meeting_provider === 'jitsi'
-                      ? 'bg-[rgba(0,178,255,0.1)] border border-[rgba(0,178,255,0.2)]'
-                      : 'bg-[rgba(45,140,255,0.1)] border border-[rgba(45,140,255,0.2)]'
-                  }`}>
-                    <span className="text-sm">
-                      {service.online_meeting_provider === 'jitsi' ? '🎥' : '🔵'}
-                    </span>
-                    <span className="text-xs text-[#94a3b8]">
-                      <strong className="text-white">
-                        {service.online_meeting_provider === 'jitsi' ? 'Jitsi Meet' : 'Zoom'}
-                      </strong>
-                      {' '}will be used for online meetings. Links are sent to customers upon booking{service.meeting_auto_create ? ' automatically' : ' when you confirm'}.
-                    </span>
-                  </div>
-                )}
               </div>
             )}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#94a3b8]">Description</label>
+              <label className="text-sm font-bold text-slate-900">Description</label>
               <textarea
                 value={service.description || ""}
                 onChange={(e) => setService({ ...service, description: e.target.value })}
-                className="auth-input min-h-[100px] py-3"
+                className="auth-input min-h-[100px] py-3 text-slate-900 border-slate-200"
               />
             </div>
 
+            {/* ══════ RULES & PAYMENT ══════ */}
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Rules & Payment</h3>
+              <p className="text-xs text-slate-500 mb-4">Configure confirmation protocol and financial settlement</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Manual Confirmation */}
+                <div className="space-y-4">
+                   <div className="flex items-center gap-3 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-slate-400" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Confirmation Protocol</label>
+                  </div>
+                  <label className="flex items-center gap-4 p-6 rounded-2xl border border-slate-100 bg-slate-50 cursor-pointer group transition-all hover:border-brand-primary/30 h-full">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only"
+                      checked={service.manual_confirmation}
+                      onChange={() => setService({ ...service, manual_confirmation: !service.manual_confirmation })}
+                    />
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0 ${service.manual_confirmation ? 'bg-brand-primary border-brand-primary' : 'border-slate-200 bg-white'}`}>
+                      {service.manual_confirmation && <CheckCircle2 className="w-4 h-4 text-white" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-900">Require Manual Verification</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Bookings must be approved by an administrator before confirmation</p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Advance Payment */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Sparkles className="w-4 h-4 text-slate-400" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Financial Settlement</label>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="flex items-center gap-4 p-6 rounded-2xl border border-slate-100 bg-slate-50 cursor-pointer group transition-all hover:border-brand-primary/30">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only"
+                        checked={service.advance_payment_required}
+                        onChange={() => setService({ ...service, advance_payment_required: !service.advance_payment_required })}
+                      />
+                      <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0 ${service.advance_payment_required ? 'bg-brand-primary border-brand-primary' : 'border-slate-200 bg-white'}`}>
+                        {service.advance_payment_required && <CheckCircle2 className="w-4 h-4 text-white" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900">Enforce Advance Payment</p>
+                        <p className="text-[10px] text-slate-500 font-medium">Require upfront payment via Stripe to secure the slot</p>
+                      </div>
+                    </label>
+
+                    {service.advance_payment_required && (
+                      <div className="p-6 rounded-2xl border border-brand-primary/20 bg-brand-primary-soft animate-in slide-in-from-top-2">
+                        <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest mb-2 block">Transaction Amount (Rs)</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            value={service.booking_fee || ""}
+                            onChange={(e) => setService({ ...service, booking_fee: parseFloat(e.target.value) || 0 })}
+                            className="auth-input bg-white text-slate-900 border-brand-primary/20 text-xl font-black"
+                            placeholder="500"
+                          />
+                          <span className="text-sm font-bold text-slate-600">INR</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* ══════ SCHEDULE TYPE ══════ */}
-            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
-              <h3 className="text-base font-semibold text-white mb-1">Schedule Type</h3>
-              <p className="text-xs text-[#64748b] mb-4">Choose how this service is scheduled</p>
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Schedule Type</h3>
+              <p className="text-xs text-slate-500 mb-4">Choose how this service is scheduled</p>
               <div className="flex gap-3">
                 {[{v:"weekly",l:"📅 Weekly",d:"Repeats every week"},{v:"monthly",l:"🗓️ Monthly",d:"Repeats every month"}].map(t=>(
                   <button key={t.v} type="button"
                     onClick={()=>setService({...service,appointment_type:t.v})}
-                    className={`flex-1 p-4 rounded-xl border-2 transition-all text-left ${service.appointment_type===t.v?"border-[#7c3aed] bg-[rgba(124,58,237,0.08)] shadow-[0_0_15px_rgba(124,58,237,0.12)]":"border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.15)]"}`}>
+                    className={`flex-1 p-4 rounded-xl border-2 transition-all text-left ${service.appointment_type===t.v?"border-brand-primary bg-brand-soft shadow-sm":"border-slate-100 bg-white hover:border-slate-200"}`}>
                     <div className="text-lg mb-1">{t.l}</div>
-                    <div className="text-xs text-[#64748b]">{t.d}</div>
+                    <div className="text-xs text-slate-500">{t.d}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* ══════ BOOKING WINDOW ══════ */}
-            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
-              <h3 className="text-base font-semibold text-white mb-1">Booking Window</h3>
-              <p className="text-xs text-[#64748b] mb-4">Date range customers can book within</p>
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Booking Window</h3>
+              <p className="text-xs text-slate-500 mb-4">Date range customers can book within</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#94a3b8]">Start Date</label>
+                  <label className="text-xs font-medium text-slate-600">Start Date</label>
                   <input type="date" value={service.schedule_start_date||new Date().toISOString().split('T')[0]}
                     onChange={e=>setService({...service,schedule_start_date:e.target.value})}
-                    className="auth-input" min={new Date().toISOString().split('T')[0]}/>
+                    className="auth-input text-slate-900 border-slate-200" min={new Date().toISOString().split('T')[0]}/>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#94a3b8]">Duration (days)</label>
+                  <label className="text-xs font-medium text-slate-600">Duration (days)</label>
                   <div className="flex items-center gap-2">
                     <input type="number" min={1} max={90} value={service.schedule_days||7}
                       onChange={e=>setService({...service,schedule_days:parseInt(e.target.value)||7})}
-                      className="auth-input w-20 text-center"/>
-                    <span className="text-xs text-[#64748b]">days</span>
+                      className="auth-input w-20 text-center text-slate-900 border-slate-200"/>
+                    <span className="text-xs text-slate-500">days</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* ══════ ACTIVE DAYS (exclude days) ══════ */}
-            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
-              <h3 className="text-base font-semibold text-white mb-1">Active Days</h3>
-              <p className="text-xs text-[#64748b] mb-4">Toggle off days you don't offer appointments (e.g. Saturday, Sunday)</p>
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Active Days</h3>
+              <p className="text-xs text-slate-500 mb-4">Toggle off days you don't offer appointments (e.g. Saturday, Sunday)</p>
               <div className="flex flex-wrap gap-2">
                 {WEEKDAYS.map(day=>{
                   const off=(service.excluded_days||[]).includes(day.value);
                   return(<button key={day.value} type="button" onClick={()=>{
                     const cur=service.excluded_days||[];
                     setService({...service,excluded_days:off?cur.filter((d:number)=>d!==day.value):[...cur,day.value]});
-                  }} className={`px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${off?"border-[rgba(255,255,255,0.05)] bg-transparent text-[#4b5563] line-through":"border-[#7c3aed] bg-[rgba(124,58,237,0.1)] text-[#a78bfa]"}`}>
+                  }} className={`px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${off?"border-slate-100 bg-transparent text-slate-400 line-through":"border-brand-primary bg-brand-soft text-brand-primary shadow-sm"}`}>
                     {day.label}
                   </button>);
                 })}
               </div>
               {(service.excluded_days||[]).length>0&&(
-                <p className="text-xs text-amber-400/80 mt-2">⚠️ {(service.excluded_days||[]).map((d:number)=>WEEKDAYS.find(w=>w.value===d)?.label).filter(Boolean).join(", ")} excluded</p>
+                <p className="text-xs text-amber-600 mt-2">⚠️ {(service.excluded_days||[]).map((d:number)=>WEEKDAYS.find(w=>w.value===d)?.label).filter(Boolean).join(", ")} excluded</p>
               )}
             </div>
 
             {/* ══════ WORKING HOURS ══════ */}
-            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
-              <h3 className="text-base font-semibold text-white mb-1">Working Hours</h3>
-              <p className="text-xs text-[#64748b] mb-4">Daily time window for appointments</p>
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Working Hours</h3>
+              <p className="text-xs text-slate-500 mb-4">Daily time window for appointments</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#94a3b8]">From</label>
+                  <label className="text-xs font-medium text-slate-600">From</label>
                   <input type="time" value={service.working_start_time||"09:00"}
-                    onChange={e=>setService({...service,working_start_time:e.target.value})} className="auth-input"/>
+                    onChange={e=>setService({...service,working_start_time:e.target.value})} className="auth-input text-slate-900 border-slate-200"/>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#94a3b8]">To</label>
+                  <label className="text-xs font-medium text-slate-600">To</label>
                   <input type="time" value={service.working_end_time||"17:00"}
-                    onChange={e=>setService({...service,working_end_time:e.target.value})} className="auth-input"/>
+                    onChange={e=>setService({...service,working_end_time:e.target.value})} className="auth-input text-slate-900 border-slate-200"/>
                 </div>
               </div>
             </div>
 
             {/* ══════ SESSION LENGTH ══════ */}
-            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
-              <h3 className="text-base font-semibold text-white mb-1">Session Length</h3>
-              <p className="text-xs text-[#64748b] mb-4">Each working day is divided into sessions of this duration</p>
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Session Length</h3>
+              <p className="text-xs text-slate-500 mb-4">Each working day is divided into sessions of this duration</p>
               <div className="flex items-center gap-3">
                 <input type="number" min={5} max={480} step={5} value={service.duration_minutes||30}
                   onChange={e=>setService({...service,duration_minutes:parseInt(e.target.value)||30})}
-                  className="auth-input w-24 text-center"/>
-                <span className="text-sm text-[#94a3b8]">minutes per session</span>
+                  className="auth-input w-24 text-center text-slate-900 border-slate-200"/>
+                <span className="text-sm text-slate-600">minutes per session</span>
               </div>
             </div>
 
             {/* ══════ CAPACITY PER SESSION ══════ */}
-            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
-              <h3 className="text-base font-semibold text-white mb-1">Capacity per Session</h3>
-              <p className="text-xs text-[#64748b] mb-4">How many people can book the same time slot</p>
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Capacity per Session</h3>
+              <p className="text-xs text-slate-500 mb-4">How many people can book the same time slot</p>
               <div className="flex gap-3 mb-3">
                 <button type="button" onClick={()=>setService({...service,capacity_per_slot:1})}
-                  className={`flex-1 p-3 rounded-xl border-2 transition-all text-left ${(service.capacity_per_slot||1)===1?"border-[#7c3aed] bg-[rgba(124,58,237,0.08)]":"border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.15)]"}`}>
+                  className={`flex-1 p-3 rounded-xl border-2 transition-all text-left ${(service.capacity_per_slot||1)===1?"border-brand-primary bg-brand-soft shadow-sm":"border-slate-100 bg-white hover:border-slate-200"}`}>
                   <span className="text-lg">👤</span>
-                  <span className="text-sm font-semibold text-white ml-2">1-on-1</span>
-                  <span className="text-xs text-[#64748b] ml-1">— one person per slot</span>
+                  <span className="text-sm font-semibold text-slate-900 ml-2">1-on-1</span>
+                  <span className="text-xs text-slate-500 ml-1">— one person per slot</span>
                 </button>
                 <button type="button" onClick={()=>setService({...service,capacity_per_slot:5})}
-                  className={`flex-1 p-3 rounded-xl border-2 transition-all text-left ${(service.capacity_per_slot||1)>1?"border-[#7c3aed] bg-[rgba(124,58,237,0.08)]":"border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.15)]"}`}>
+                  className={`flex-1 p-3 rounded-xl border-2 transition-all text-left ${(service.capacity_per_slot||1)>1?"border-brand-primary bg-brand-soft shadow-sm":"border-slate-100 bg-white hover:border-slate-200"}`}>
                   <span className="text-lg">👥</span>
-                  <span className="text-sm font-semibold text-white ml-2">Group</span>
-                  <span className="text-xs text-[#64748b] ml-1">— multiple per slot</span>
+                  <span className="text-sm font-semibold text-slate-900 ml-2">Group</span>
+                  <span className="text-xs text-slate-500 ml-1">— multiple per slot</span>
                 </button>
               </div>
               {(service.capacity_per_slot||1)>1&&(
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)]">
-                  <span className="text-xs text-[#94a3b8]">Max per slot:</span>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-xs text-slate-600">Max per slot:</span>
                   <input type="number" min={2} max={500} value={service.capacity_per_slot}
                     onChange={e=>setService({...service,capacity_per_slot:parseInt(e.target.value)||2})}
-                    className="auth-input w-16 text-center py-1 text-sm"/>
-                  <span className="text-xs text-[#64748b]">people</span>
+                    className="auth-input w-16 text-center py-1 text-sm text-slate-900 border-slate-200"/>
+                  <span className="text-xs text-slate-500">people</span>
                 </div>
               )}
             </div>
 
             {/* ══════ VISUAL DAY CALENDAR ══════ */}
             {/* ══════ LIVE AVAILABILITY PREVIEW ══════ */}
-            <div className="border-t border-[rgba(255,255,255,0.06)] pt-6">
+            <div className="border-t border-slate-200 pt-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-base font-semibold text-white mb-1">Live Availability Preview</h3>
-                  <p className="text-xs text-[#64748b]">Select a date to see actual slots based on your saved settings & Google Calendar</p>
+                  <h3 className="text-base font-semibold text-slate-900 mb-1">Live Availability Preview</h3>
+                  <p className="text-xs text-slate-500">Select a date to see actual slots based on your saved settings & Google Calendar</p>
                 </div>
-                <button type="button" onClick={loadPreviewDates} className="px-3 py-1.5 text-xs font-medium bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] rounded-lg transition-all text-[#94a3b8]">
+                <button type="button" onClick={loadPreviewDates} className="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition-all text-slate-600">
                   Refresh Preview
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-[rgba(255,255,255,0.02)] p-4 rounded-xl border border-[rgba(255,255,255,0.06)]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 {/* Interactive Calendar */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-semibold text-white">{format(calendarMonth, "MMMM yyyy")}</h4>
+                    <h4 className="font-semibold text-slate-900">{format(calendarMonth, "MMMM yyyy")}</h4>
                     <div className="flex gap-2">
-                      <button type="button" onClick={(e) => { e.preventDefault(); setCalendarMonth(subMonths(calendarMonth, 1)); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all">←</button>
-                      <button type="button" onClick={(e) => { e.preventDefault(); setCalendarMonth(addMonths(calendarMonth, 1)); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all">→</button>
+                      <button type="button" onClick={(e) => { e.preventDefault(); setCalendarMonth(subMonths(calendarMonth, 1)); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 hover:bg-slate-50 transition-all text-slate-600">←</button>
+                      <button type="button" onClick={(e) => { e.preventDefault(); setCalendarMonth(addMonths(calendarMonth, 1)); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 hover:bg-slate-50 transition-all text-slate-600">→</button>
                     </div>
                   </div>
                   <div className="grid grid-cols-7 gap-1 text-center mb-2">
@@ -630,11 +695,11 @@ export default function ServiceConfig() {
                           type="button"
                           disabled={!isAvailable}
                           onClick={() => handleDateClick(d)}
-                          className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-all relative ${!isCurrentMonth ? "opacity-30" : ""} ${isSelected ? "bg-[#7c3aed] text-white font-bold shadow-[0_0_15px_rgba(124,58,237,0.3)]" : isAvailable ? "bg-[rgba(255,255,255,0.05)] text-white hover:bg-[rgba(255,255,255,0.1)] cursor-pointer" : "text-[#4b5563] cursor-not-allowed"}`}
+                          className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-all relative ${!isCurrentMonth ? "opacity-30" : ""} ${isSelected ? "bg-brand-primary text-white font-bold shadow-md shadow-brand-primary/20" : isAvailable ? "bg-white border border-slate-200 text-slate-900 hover:bg-brand-soft hover:text-brand-primary hover:border-brand-primary/30 cursor-pointer" : "text-slate-400 bg-transparent cursor-not-allowed"}`}
                         >
                           {format(d, "d")}
                           {isAvailable && !isSelected && (
-                            <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#a78bfa]"></span>
+                            <span className="absolute bottom-1 w-1 h-1 rounded-full bg-brand-primary"></span>
                           )}
                         </button>
                       );
@@ -643,8 +708,8 @@ export default function ServiceConfig() {
                 </div>
 
                 {/* Slots Panel */}
-                <div className="border-t lg:border-t-0 lg:border-l border-[rgba(255,255,255,0.06)] pt-4 lg:pt-0 lg:pl-6">
-                  <h4 className="font-semibold text-white mb-4">
+                <div className="border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6">
+                  <h4 className="font-semibold text-slate-900 mb-4">
                     {selectedDate ? format(new Date(selectedDate), "EEEE, MMMM d") : "Select a date"}
                   </h4>
                   {selectedDate ? (
@@ -655,18 +720,18 @@ export default function ServiceConfig() {
                         {availableSlots.map((slot: any, i: number) => {
                           const sTime = slot.start_time.substring(0, 5);
                           return (
-                            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.15)] group">
-                              <span className="text-sm font-bold text-[#a78bfa]">{sTime}</span>
-                              <span className="text-[10px] text-[#64748b]">{(service.capacity_per_slot||1) > 1 ? `${slot.remaining_capacity} spots left` : "Available"}</span>
+                            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-200 group shadow-sm">
+                              <span className="text-sm font-bold text-slate-900">{sTime}</span>
+                              <span className="text-[10px] text-slate-500">{(service.capacity_per_slot||1) > 1 ? `${slot.remaining_capacity} spots left` : "Available"}</span>
                             </div>
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center h-32 text-sm text-[#64748b]">No slots available</div>
+                      <div className="flex items-center justify-center h-32 text-sm text-slate-500">No slots available</div>
                     )
                   ) : (
-                    <div className="flex items-center justify-center h-32 text-sm text-[#64748b]">Choose a date on the calendar</div>
+                    <div className="flex items-center justify-center h-32 text-sm text-slate-500">Choose a date on the calendar</div>
                   )}
                 </div>
               </div>
@@ -675,7 +740,7 @@ export default function ServiceConfig() {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 rounded-lg bg-[#7c3aed] text-white font-medium hover:bg-[#6d28d9] transition-all mt-4"
+              className="px-8 py-4 rounded-2xl bg-brand-primary text-white text-xs font-black uppercase tracking-widest hover:bg-brand-primary/90 transition-all mt-4 w-full sm:w-auto shadow-lg shadow-brand-primary/20"
             >
               {saving ? "Saving..." : "Save Service"}
             </button>
@@ -686,101 +751,79 @@ export default function ServiceConfig() {
 
         {/* ═══════ QUESTIONS TAB ═══════ */}
         {activeTab === "questions" && (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold text-white">Intake Questions</h2>
-                <p className="text-sm text-[#64748b] mt-1">
-                  Questions customers must answer when booking this service
-                </p>
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-[1.25rem] bg-brand-soft flex items-center justify-center text-brand-primary">
+                  <HelpCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-heading font-black text-slate-900 tracking-tight">Intake Architecture</h2>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Construct the heuristic data gathering pipeline</p>
+                </div>
               </div>
+              {!showAddForm && (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="px-6 py-3 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary transition-all shadow-lg shadow-slate-200 flex items-center gap-3"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Logic Node
+                </button>
+              )}
             </div>
 
             {qError && (
-              <div className="mb-4 p-3 rounded-lg bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] text-[#ef4444] text-sm">
+              <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+                <AlertTriangle className="w-4 h-4" />
                 {qError}
               </div>
             )}
 
             {/* Questions table */}
             {questions.length > 0 && (
-              <div className="rounded-xl border border-[rgba(255,255,255,0.08)] overflow-hidden mb-6">
+              <div className="border border-slate-100 rounded-[2rem] overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)]">
-                      <th className="p-4 text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">
-                        Question
-                      </th>
-                      <th className="p-4 text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">
-                        Answer Type
-                      </th>
-                      <th className="p-4 text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">
-                        Options
-                      </th>
-                      <th className="p-4 text-xs font-semibold text-[#94a3b8] uppercase tracking-wider text-center">
-                        Mandatory
-                      </th>
-                      <th className="p-4 text-xs font-semibold text-[#94a3b8] uppercase tracking-wider text-center w-16">
-                      </th>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Question String</th>
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Logic Type</th>
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Required</th>
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-16"></th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-50">
                     {questions.map((q, i) => (
-                      <tr
-                        key={q.id ?? i}
-                        className="border-b border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.02)] transition-colors"
-                      >
-                        <td className="p-4 text-sm font-medium text-white">
-                          {q.question_text}
+                      <tr key={q.id ?? i} className="group hover:bg-slate-50/50 transition-colors">
+                        <td className="p-6">
+                          <p className="text-sm font-bold text-slate-900">{q.question_text}</p>
+                          {q.options && q.options.length > 0 && (
+                            <p className="text-[10px] text-slate-500 mt-1 font-medium italic">Options: {q.options.join(", ")}</p>
+                          )}
                         </td>
-                        <td className="p-4">
-                          <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-[rgba(124,58,237,0.15)] text-[#a78bfa] font-medium">
+                        <td className="p-6">
+                          <span className="px-3 py-1 rounded-pill bg-slate-100 text-slate-900 text-[9px] font-black uppercase tracking-widest border border-slate-200">
                             {typeLabel(q.question_type)}
                           </span>
                         </td>
-                        <td className="p-4 text-sm text-[#64748b]">
-                          {q.options && q.options.length > 0
-                            ? q.options.join(", ")
-                            : "—"}
-                        </td>
-                        <td className="p-4 text-center">
+                        <td className="p-6 text-center">
                           <button
                             onClick={() => handleToggleRequired(q)}
-                            className="inline-flex items-center justify-center"
-                            title="Toggle mandatory"
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto transition-all border ${
+                              q.is_required 
+                                ? "bg-emerald-50 border-emerald-100 text-emerald-600" 
+                                : "bg-slate-50 border-slate-100 text-slate-300"
+                            }`}
                           >
-                            <span
-                              className={`inline-flex items-center justify-center w-5 h-5 rounded border transition-all ${
-                                q.is_required
-                                  ? "bg-[#7c3aed] border-[#7c3aed]"
-                                  : "border-[rgba(255,255,255,0.2)] bg-transparent"
-                              }`}
-                            >
-                              {q.is_required && (
-                                <svg
-                                  className="w-3 h-3 text-white"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={3}
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                              )}
-                            </span>
+                            <CheckCircle2 className={`w-5 h-5 ${q.is_required ? "stroke-[2.5]" : "opacity-30"}`} />
                           </button>
                         </td>
-                        <td className="p-4 text-center">
+                        <td className="p-6 text-center">
                           <button
                             onClick={() => handleDeleteQuestion(q.id!)}
-                            className="text-[#64748b] hover:text-[#ef4444] transition-colors text-lg leading-none"
-                            title="Delete question"
+                            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center mx-auto"
                           >
-                            ✕
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </td>
                       </tr>
@@ -791,107 +834,79 @@ export default function ServiceConfig() {
             )}
 
             {questions.length === 0 && !showAddForm && (
-              <div className="text-center py-12 mb-6 rounded-xl border border-dashed border-[rgba(255,255,255,0.1)]">
-                <p className="text-[#64748b] mb-2">No intake questions yet</p>
-                <p className="text-xs text-[#4b5563]">
-                  Add questions that customers will fill out during booking
-                </p>
+              <div className="text-center py-20 border border-slate-100 border-dashed rounded-[3rem]">
+                <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px] mb-4">Zero logic nodes deployed</p>
+                <button onClick={() => setShowAddForm(true)} className="text-brand-primary font-black text-sm uppercase tracking-widest hover:underline flex items-center gap-2 mx-auto">
+                  Add your first intake question <Plus className="w-4 h-4" />
+                </button>
               </div>
             )}
 
             {/* Add question form */}
             {showAddForm ? (
-              <div className="rounded-xl border border-[rgba(124,58,237,0.3)] bg-[rgba(124,58,237,0.04)] p-6 space-y-5">
-                <h3 className="text-sm font-semibold text-white mb-4">New Question</h3>
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-10 space-y-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                    <Plus className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight uppercase text-xs tracking-widest">Deploy New Node</h3>
+                </div>
 
-                {/* Answer type selector */}
-                <div className="flex flex-wrap gap-2">
-                  {QUESTION_TYPES.map((t) => (
-                    <button
-                      type="button"
-                      key={t.value}
-                      onClick={() => setNewQ({ ...newQ, question_type: t.value })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                        newQ.question_type === t.value
-                          ? "border-[#7c3aed] bg-[rgba(124,58,237,0.2)] text-[#a78bfa]"
-                          : "border-[rgba(255,255,255,0.1)] text-[#64748b] hover:border-[rgba(255,255,255,0.2)] hover:text-[#94a3b8]"
-                      }`}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Question Text</label>
+                    <input
+                      type="text"
+                      value={newQ.question_text}
+                      onChange={(e) => setNewQ({ ...newQ, question_text: e.target.value })}
+                      className="auth-input bg-white text-slate-900 border-slate-200"
+                      placeholder="e.g. Any medical history?"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Data Logic Type</label>
+                    <select
+                      value={newQ.question_type}
+                      onChange={(e) => setNewQ({ ...newQ, question_type: e.target.value })}
+                      className="auth-input bg-white text-slate-900 border-slate-200"
                     >
-                      {t.label}
-                    </button>
-                  ))}
+                      {QUESTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
                 </div>
 
-                {/* Question text */}
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-[#94a3b8]">Question</label>
-                  <input
-                    type="text"
-                    value={newQ.question_text}
-                    onChange={(e) => setNewQ({ ...newQ, question_text: e.target.value })}
-                    className="auth-input"
-                    placeholder="Anything else we should know?"
-                    autoFocus
-                  />
-                </div>
-
-                {/* Options input — only for radio / checkbox */}
                 {(newQ.question_type === "radio" || newQ.question_type === "checkbox") && (
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-[#94a3b8]">
-                      Options (comma-separated)
-                    </label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Options (comma-separated)</label>
                     <input
                       type="text"
                       value={newOptions}
                       onChange={(e) => setNewOptions(e.target.value)}
-                      className="auth-input"
+                      className="auth-input bg-white text-slate-900 border-slate-200"
                       placeholder="e.g. Morning, Afternoon, Evening"
                     />
                   </div>
                 )}
 
-                {/* Mandatory toggle */}
                 <label className="flex items-center gap-3 cursor-pointer select-none">
-                  <span
-                    className={`inline-flex items-center justify-center w-5 h-5 rounded border transition-all ${
-                      newQ.is_required
-                        ? "bg-[#7c3aed] border-[#7c3aed]"
-                        : "border-[rgba(255,255,255,0.2)] bg-transparent"
-                    }`}
-                    onClick={() => setNewQ({ ...newQ, is_required: !newQ.is_required })}
-                  >
-                    {newQ.is_required && (
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </span>
-                  <span className="text-sm text-[#94a3b8]">Mandatory Answer</span>
+                  <input 
+                    type="checkbox" 
+                    className="sr-only"
+                    checked={newQ.is_required}
+                    onChange={() => setNewQ({ ...newQ, is_required: !newQ.is_required })}
+                  />
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${newQ.is_required ? 'bg-brand-primary border-brand-primary' : 'border-slate-200 bg-white'}`}>
+                    {newQ.is_required && <CheckCircle2 className="w-4 h-4 text-white" />}
+                  </div>
+                  <span className="text-sm font-bold text-slate-900">Mandatory Response</span>
                 </label>
 
-                {/* Buttons */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={handleAddQuestion}
-                    disabled={qSaving || !newQ.question_text.trim()}
-                    className="px-5 py-2 rounded-lg bg-[#7c3aed] text-white text-sm font-medium hover:bg-[#6d28d9] transition-all disabled:opacity-50"
-                  >
-                    {qSaving ? "Saving..." : "Add Question"}
+                <div className="flex gap-4 pt-4">
+                  <button onClick={handleAddQuestion} disabled={qSaving || !newQ.question_text.trim()} className="px-8 py-4 rounded-xl bg-brand-primary text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand-primary/20 hover:scale-[1.02] transition-all disabled:opacity-50">
+                    {qSaving ? "Deploying..." : "Add Logic Node"}
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setQError("");
-                    }}
-                    className="px-5 py-2 rounded-lg border border-[rgba(255,255,255,0.1)] text-[#94a3b8] text-sm hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all"
-                  >
+                  <button onClick={() => { setShowAddForm(false); setQError(""); }} className="px-8 py-4 rounded-xl bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 transition-all">
                     Cancel
                   </button>
                 </div>
@@ -915,185 +930,56 @@ export default function ServiceConfig() {
           </div>
         )}
 
-        {/* ═══════ OPTIONS TAB ═══════ */}
-        {activeTab === "options" && (
-          <form onSubmit={handleUpdate} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-              {/* Left Column */}
-              <div className="space-y-8">
-                {/* Manual Confirmation */}
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-3 cursor-pointer select-none min-w-[160px]">
-                    <span
-                      className={`inline-flex items-center justify-center w-5 h-5 rounded border transition-all ${
-                        service.manual_confirmation
-                          ? "bg-[#7c3aed] border-[#7c3aed]"
-                          : "border-[rgba(255,255,255,0.2)] bg-transparent"
-                      }`}
-                      onClick={() =>
-                        setService({ ...service, manual_confirmation: !service.manual_confirmation })
-                      }
-                    >
-                      {service.manual_confirmation && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </span>
-                    <span className="text-sm font-medium text-white">Manual confirmation</span>
-                  </label>
-                  {service.manual_confirmation && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-[#94a3b8]">Upto</span>
-                      <input
-                        type="number"
-                        value={service.manual_confirmation_percent || ""}
-                        onChange={(e) => setService({ ...service, manual_confirmation_percent: parseInt(e.target.value) || null })}
-                        className="auth-input w-20 py-1 px-2 text-center"
-                        placeholder="50"
-                      />
-                      <span className="text-sm text-[#94a3b8]">% of capacity</span>
-                    </div>
-                  )}
-                </div>
 
-                {/* Paid Booking */}
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-3 cursor-pointer select-none min-w-[160px]">
-                    <span
-                      className={`inline-flex items-center justify-center w-5 h-5 rounded border transition-all ${
-                        service.advance_payment_required
-                          ? "bg-[#7c3aed] border-[#7c3aed]"
-                          : "border-[rgba(255,255,255,0.2)] bg-transparent"
-                      }`}
-                      onClick={() =>
-                        setService({ ...service, advance_payment_required: !service.advance_payment_required })
-                      }
-                    >
-                      {service.advance_payment_required && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </span>
-                    <span className="text-sm font-medium text-white">Paid Booking</span>
-                  </label>
-                  {service.advance_payment_required && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-[#94a3b8]">Booking Fees (Rs</span>
-                      <input
-                        type="number"
-                        value={service.booking_fee || ""}
-                        onChange={(e) => setService({ ...service, booking_fee: parseFloat(e.target.value) || null })}
-                        className="auth-input w-24 py-1 px-2 text-center"
-                        placeholder="200"
-                      />
-                      <span className="text-sm text-[#94a3b8]">Per booking)</span>
-                    </div>
-                  )}
-                </div>
 
-                {/* Schedule Type */}
-                <div className="flex items-center gap-6">
-                  <span className="text-sm font-medium text-white min-w-[160px]">Schedule</span>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <input type="radio" name="schedule_type" className="sr-only" checked={true} readOnly />
-                      <span className="w-4 h-4 rounded-full border-2 border-[#7c3aed] bg-[#7c3aed] flex items-center justify-center">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                      </span>
-                      <span className="text-sm text-[#cbd5e1]">weekly</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <input type="radio" name="schedule_type" className="sr-only" checked={false} readOnly />
-                      <span className="w-4 h-4 rounded-full border-2 border-[rgba(255,255,255,0.25)] flex items-center justify-center group-hover:border-[rgba(255,255,255,0.4)]">
-                      </span>
-                      <span className="text-sm text-[#cbd5e1]">flexible</span>
-                    </label>
+            {/* ═══════ MISC TAB ═══════ */}
+            {activeTab === "misc" && (
+              <form onSubmit={handleUpdate} className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-[1.25rem] bg-brand-soft flex items-center justify-center text-brand-primary">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-heading font-black text-slate-900 tracking-tight">System Notifications</h2>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Localized interaction messages & SEO headers</p>
                   </div>
                 </div>
-              </div>
 
-              {/* Right Column */}
-              <div className="space-y-8">
-                {/* Create Slot */}
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-white min-w-[100px]">Create Slot</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={service.duration_minutes || ""}
-                      onChange={(e) => setService({ ...service, duration_minutes: parseInt(e.target.value) || 0 })}
-                      className="auth-input w-24 py-1 px-2 text-center"
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Landing Presentation</label>
+                    <textarea
+                      value={service.intro_message || ""}
+                      onChange={(e) => setService({ ...service, intro_message: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all h-32"
+                      placeholder="Schedule your visit today and experience expert care..."
                     />
-                    <span className="text-sm text-[#94a3b8]">minutes</span>
                   </div>
-                </div>
-
-                {/* Cancellation */}
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-white min-w-[100px]">Cancellation</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-[#94a3b8]">up to</span>
-                    <input
-                      type="number"
-                      value={service.cancellation_hours || ""}
-                      onChange={(e) => setService({ ...service, cancellation_hours: parseInt(e.target.value) || 0 })}
-                      className="auth-input w-20 py-1 px-2 text-center"
+                  
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Post-Execution Dispatch</label>
+                    <textarea
+                      value={service.confirmation_message || ""}
+                      onChange={(e) => setService({ ...service, confirmation_message: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all h-32"
+                      placeholder="Thank you for your trust, we look forward to meeting you."
                     />
-                    <span className="text-sm text-[#94a3b8]">hour(s) before the booking</span>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Included in automated confirmation protocols.</p>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="pt-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-2 rounded-lg bg-[#7c3aed] text-white font-medium hover:bg-[#6d28d9] transition-all"
-              >
-                {saving ? "Saving..." : "Save Options"}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* ═══════ MISC TAB ═══════ */}
-        {activeTab === "misc" && (
-          <form onSubmit={handleUpdate} className="space-y-8">
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-white">Introduction page message</label>
-              <textarea
-                value={service.intro_message || ""}
-                onChange={(e) => setService({ ...service, intro_message: e.target.value })}
-                className="auth-input min-h-[100px] py-3"
-                placeholder="Schedule your visit today and experience expert care brought right to your doorstep."
-              />
-            </div>
-            
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-white">Confirmation page message</label>
-              <textarea
-                value={service.confirmation_message || ""}
-                onChange={(e) => setService({ ...service, confirmation_message: e.target.value })}
-                className="auth-input min-h-[100px] py-3"
-                placeholder="Thank you for your trust we look forward to meeting you"
-              />
-              <p className="text-xs text-[#94a3b8]">This message will be included in the confirmation email sent to the user.</p>
-            </div>
-
-            <div className="pt-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-2 rounded-lg bg-[#7c3aed] text-white font-medium hover:bg-[#6d28d9] transition-all"
-              >
-                {saving ? "Saving..." : "Save Messages"}
-              </button>
-            </div>
-          </form>
-        )}
+                <div className="pt-8">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full py-5 rounded-2xl bg-brand-primary text-white text-xs font-black uppercase tracking-widest hover:bg-brand-primary/90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-brand-primary/20 flex items-center justify-center gap-3"
+                  >
+                    {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                    Synchronize Metadata
+                  </button>
+                </div>
+              </form>
+            )}
       </div>
     </div>
   );

@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  User, 
+  ExternalLink, 
+  MoreHorizontal, 
+  CheckCheck, 
+  Calendar as CalendarIcon,
+  Search,
+  Filter,
+  Share2
+} from "lucide-react";
 
 interface Booking {
   id: string;
@@ -22,6 +35,7 @@ export default function OrganiserBookings() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
   const [meetingModal, setMeetingModal] = useState<Booking | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     loadBookings();
@@ -40,11 +54,17 @@ export default function OrganiserBookings() {
   }
 
   async function handleAction(bookingId: string, action: string) {
+    setActionLoading(bookingId);
     try {
       if (action === "confirm") {
         await fetchApi(`/bookings/${bookingId}/confirm/`, { method: "POST" });
+      } else if (action === "complete") {
+        await fetchApi(`/bookings/${bookingId}/status/`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "completed" }),
+        });
       } else if (action === "reject") {
-        await fetchApi(`/bookings/${bookingId}/reject/`, { method: "POST", body: JSON.stringify({ reason: "" }) });
+        await fetchApi(`/bookings/${bookingId}/reject/`, { method: "POST", body: JSON.stringify({ reason: "Declined by organiser" }) });
       } else {
         await fetchApi(`/bookings/${bookingId}/status/`, {
           method: "PATCH",
@@ -54,6 +74,8 @@ export default function OrganiserBookings() {
       loadBookings();
     } catch (err: any) {
       alert(err.message || `Failed to ${action} booking`);
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -63,13 +85,13 @@ export default function OrganiserBookings() {
     return (
       <div className="flex items-center gap-1.5">
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
             isJitsi
-              ? "bg-[rgba(0,178,255,0.15)] text-[#00B2FF] border border-[rgba(0,178,255,0.3)]"
-              : "bg-[rgba(45,140,255,0.15)] text-[#60a5fa] border border-[rgba(45,140,255,0.3)]"
+              ? "bg-sky-50 text-sky-600 border border-sky-100"
+              : "bg-blue-50 text-blue-600 border border-blue-100"
           }`}
         >
-          <span className="text-xs">{isJitsi ? "🎥" : "🎥"}</span>
+          {isJitsi ? <div className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" /> : <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
           {isJitsi ? "Jitsi" : "Zoom"}
         </span>
       </div>
@@ -77,160 +99,230 @@ export default function OrganiserBookings() {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-1">Bookings</h1>
-      <p className="text-[#94a3b8] mb-8">Manage appointments and customer requests</p>
-
-      <div className="flex gap-2 mb-6">
-        {["pending", "confirmed", "cancelled"].map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
-              statusFilter === s
-                ? "bg-[#7c3aed] text-white"
-                : "bg-[rgba(255,255,255,0.05)] text-[#64748b] hover:text-white"
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+    <div className="max-w-7xl mx-auto py-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+        <div>
+          <p className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] mb-2">Operations Center</p>
+          <h1 className="text-4xl font-heading font-black text-slate-900 tracking-tight">Bookings</h1>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-card">
+            {["pending", "confirmed", "completed", "cancelled"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  statusFilter === s
+                    ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {error && <div className="mb-4 text-red-500 text-sm">{error}</div>}
+      {error && (
+        <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+          <XCircle className="w-4 h-4" />
+          {error}
+        </div>
+      )}
 
-      <div className="glass-card overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
-              <th className="p-4 text-sm font-medium text-[#94a3b8]">Customer</th>
-              <th className="p-4 text-sm font-medium text-[#94a3b8]">Service</th>
-              <th className="p-4 text-sm font-medium text-[#94a3b8]">Time</th>
-              <th className="p-4 text-sm font-medium text-[#94a3b8]">Meeting</th>
-              <th className="p-4 text-sm font-medium text-[#94a3b8]">Status</th>
-              <th className="p-4 text-sm font-medium text-[#94a3b8]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={6} className="p-4 text-center text-sm text-[#94a3b8]">Loading...</td></tr>
-            ) : bookings.length === 0 ? (
-              <tr><td colSpan={6} className="p-4 text-center text-sm text-[#94a3b8]">No bookings found for this filter.</td></tr>
-            ) : (
-              bookings.map((booking) => (
-                <tr key={booking.id} className="border-b border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.02)] transition-colors">
-                  <td className="p-4">
-                    <div className="text-sm font-medium text-white">{booking.customer_name || "Guest"}</div>
-                    <div className="text-xs text-[#64748b]">{booking.customer_email}</div>
-                  </td>
-                  <td className="p-4 text-sm text-[#94a3b8]">{booking.service_title}</td>
-                  <td className="p-4">
-                    <div className="text-sm text-white">{booking.slot_date}</div>
-                    <div className="text-xs text-[#64748b]">{booking.slot_start}</div>
-                  </td>
-                  <td className="p-4">
-                    {booking.meeting_link ? (
-                      <button
-                        onClick={() => setMeetingModal(booking)}
-                        className="group flex items-center gap-1.5 cursor-pointer"
-                      >
-                        {getMeetingBadge(booking)}
-                        <svg className="w-3.5 h-3.5 text-[#64748b] group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </button>
-                    ) : (
-                      <span className="text-xs text-[#4b5563]">—</span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <span className={`status-badge ${booking.status}`}>
-                      {booking.status}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex gap-2">
-                      {booking.status === "pending" && (
-                        <>
-                          <button
-                            onClick={() => handleAction(booking.id, "confirm")}
-                            className="text-xs text-green-500 hover:underline"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleAction(booking.id, "reject")}
-                            className="text-xs text-red-500 hover:underline"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                      {booking.status === "confirmed" && (
-                        <button
-                          onClick={() => handleAction(booking.id, "cancel")}
-                          className="text-xs text-[#64748b] hover:text-red-500 hover:underline"
-                        >
-                          Cancel
-                        </button>
-                      )}
+      <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/50">
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Service</th>
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</th>
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Meeting</th>
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="p-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fetching appointments...</p>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : bookings.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300">
+                        <CalendarIcon className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-400">No {statusFilter} bookings found.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                bookings.map((booking) => (
+                  <tr key={booking.id} className="group hover:bg-slate-50/50 transition-colors">
+                    <td className="p-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs">
+                          {(booking.customer_name || "G")[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-slate-900">{booking.customer_name || "Guest"}</div>
+                          <div className="text-[10px] font-medium text-slate-400">{booking.customer_email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-6">
+                      <div className="text-sm font-bold text-slate-700">{booking.service_title}</div>
+                      <div className="text-[10px] font-black text-brand-primary/50 uppercase tracking-widest mt-1">ID: #{booking.id.slice(0, 8)}</div>
+                    </td>
+                    <td className="p-6">
+                      <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                        <CalendarIcon className="w-3.5 h-3.5 text-slate-300" />
+                        {booking.slot_date}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-300" />
+                        {booking.slot_start}
+                      </div>
+                    </td>
+                    <td className="p-6">
+                      {booking.meeting_link ? (
+                        <button
+                          onClick={() => setMeetingModal(booking)}
+                          className="flex items-center gap-2 group/btn"
+                        >
+                          {getMeetingBadge(booking)}
+                          <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover/btn:bg-brand-soft group-hover/btn:text-brand-primary transition-all">
+                            <ExternalLink className="w-4 h-4" />
+                          </div>
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">—</span>
+                      )}
+                    </td>
+                    <td className="p-6">
+                      <span className={`px-4 py-1.5 rounded-pill text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2 border ${
+                        booking.status === "confirmed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                        booking.status === "pending" ? "bg-amber-50 text-amber-600 border-amber-100" :
+                        booking.status === "completed" ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
+                        "bg-slate-50 text-slate-400 border-slate-100"
+                      }`}>
+                        <div className={`w-1 h-1 rounded-full ${
+                          booking.status === "confirmed" ? "bg-emerald-500" :
+                          booking.status === "pending" ? "bg-amber-500" :
+                          booking.status === "completed" ? "bg-indigo-500" :
+                          "bg-slate-300"
+                        }`} />
+                        {booking.status}
+                      </span>
+                    </td>
+                    <td className="p-6">
+                      <div className="flex items-center gap-2">
+                        {actionLoading === booking.id ? (
+                          <div className="w-5 h-5 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            {booking.status === "pending" && (
+                              <>
+                                <button
+                                  onClick={() => handleAction(booking.id, "confirm")}
+                                  className="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                  title="Confirm Appointment"
+                                >
+                                  <CheckCircle className="w-4 h-4 stroke-[2.5]" />
+                                </button>
+                                <button
+                                  onClick={() => handleAction(booking.id, "reject")}
+                                  className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                                  title="Reject Appointment"
+                                >
+                                  <XCircle className="w-4 h-4 stroke-[2.5]" />
+                                </button>
+                              </>
+                            )}
+                            {booking.status === "confirmed" && (
+                              <>
+                                <button
+                                  onClick={() => handleAction(booking.id, "complete")}
+                                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm font-black text-[10px] uppercase tracking-widest"
+                                  title="Mark as Complete"
+                                >
+                                  <CheckCheck className="w-4 h-4 stroke-[2.5]" />
+                                  Finish Session
+                                </button>
+                                <button
+                                  onClick={() => handleAction(booking.id, "cancel")}
+                                  className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm"
+                                  title="Cancel Appointment"
+                                >
+                                  <XCircle className="w-4 h-4 stroke-[2.5]" />
+                                </button>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Meeting Details Modal */}
       {meetingModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md"
           onClick={() => setMeetingModal(null)}
         >
           <div
-            className="glass-card p-0 w-full max-w-md overflow-hidden"
+            className="bg-white border border-slate-200 shadow-2xl rounded-[3rem] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
-            style={{ animation: "fadeInUp 0.3s ease-out" }}
           >
             {/* Modal Header */}
             <div
-              className={`p-6 ${
+              className={`p-10 ${
                 meetingModal.meeting_provider === "jitsi"
-                  ? "bg-gradient-to-r from-[rgba(0,178,255,0.2)] to-[rgba(0,178,255,0.1)]"
-                  : "bg-gradient-to-r from-[rgba(11,92,255,0.2)] to-[rgba(45,140,255,0.1)]"
+                  ? "bg-gradient-to-br from-sky-50 to-white"
+                  : "bg-gradient-to-br from-blue-50 to-white"
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-6">
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
+                    className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-xl ${
                       meetingModal.meeting_provider === "jitsi"
-                        ? "bg-gradient-to-br from-[#1b3d5c] to-[#00B2FF]"
-                        : "bg-gradient-to-br from-[#0b5cff] to-[#2d8cff]"
+                        ? "bg-sky-500 text-white"
+                        : "bg-blue-600 text-white"
                     }`}
                   >
                     {meetingModal.meeting_provider === "jitsi" ? (
-                      <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      </svg>
+                      <CheckCheck className="w-8 h-8 stroke-[2.5]" />
                     ) : (
-                      <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M4 4h10v10H4V4zm12 2l4-2v12l-4-2V6z"/>
-                      </svg>
+                      <CheckCheck className="w-8 h-8 stroke-[2.5]" />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">
+                    <h3 className="text-2xl font-heading font-black text-slate-900 tracking-tight">
                       {meetingModal.meeting_provider === "jitsi" ? "Jitsi Meet" : "Zoom Meeting"}
                     </h3>
-                    <p className="text-xs text-[#94a3b8]">{meetingModal.service_title}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{meetingModal.service_title}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setMeetingModal(null)}
-                  className="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.1)] flex items-center justify-center text-[#94a3b8] hover:text-white hover:bg-[rgba(255,255,255,0.2)] transition-all"
+                  className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm"
                 >
                   ✕
                 </button>
@@ -238,85 +330,60 @@ export default function OrganiserBookings() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-5">
+            <div className="p-10 space-y-8">
               {/* Customer Info */}
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)]">
-                <div className="w-8 h-8 rounded-full bg-[#7c3aed] flex items-center justify-center text-white text-sm font-bold">
+              <div className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-brand-primary flex items-center justify-center text-white text-sm font-black">
                   {(meetingModal.customer_name || "G")[0].toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{meetingModal.customer_name || "Guest"}</p>
-                  <p className="text-xs text-[#64748b]">{meetingModal.customer_email}</p>
+                  <p className="text-sm font-black text-slate-900">{meetingModal.customer_name || "Guest"}</p>
+                  <p className="text-[10px] font-medium text-slate-400">{meetingModal.customer_email}</p>
                 </div>
               </div>
 
-              {/* Meeting ID */}
-              <div>
-                <label className="text-[10px] uppercase tracking-widest font-semibold text-[#64748b] mb-1.5 block">Meeting ID</label>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 px-4 py-2.5 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] text-white font-mono text-sm tracking-wider">
-                    {meetingModal.meeting_id}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(meetingModal.meeting_id || "");
-                    }}
-                    className="px-3 py-2.5 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] text-[#94a3b8] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all text-xs"
-                    title="Copy Meeting ID"
-                  >
-                    📋
-                  </button>
-                </div>
-              </div>
-
-              {/* Meeting Link */}
-              <div>
-                <label className="text-[10px] uppercase tracking-widest font-semibold text-[#64748b] mb-1.5 block">Meeting Link</label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 px-4 py-2.5 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] text-[#94a3b8] text-sm truncate">
-                    {meetingModal.meeting_link}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-2 block">Meeting ID</label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-900 font-mono text-xs tracking-wider">
+                      {meetingModal.meeting_id}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(meetingModal.meeting_id || "");
+                      }}
+                      className="p-3 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-brand-primary hover:border-brand-primary transition-all shadow-sm"
+                      title="Copy ID"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(meetingModal.meeting_link || "");
-                    }}
-                    className="px-3 py-2.5 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] text-[#94a3b8] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all text-xs"
-                    title="Copy Link"
-                  >
-                    📋
-                  </button>
-                </div>
-              </div>
-
-              {/* Date & Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] uppercase tracking-widest font-semibold text-[#64748b] mb-1.5 block">Date</label>
-                  <p className="text-sm text-white font-medium">{meetingModal.slot_date}</p>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-widest font-semibold text-[#64748b] mb-1.5 block">Time</label>
-                  <p className="text-sm text-white font-medium">{meetingModal.slot_start}</p>
+                  <label className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-2 block">Date & Time</label>
+                  <p className="text-sm text-slate-900 font-black">{meetingModal.slot_date}</p>
+                  <p className="text-[10px] font-black text-brand-primary uppercase tracking-widest">{meetingModal.slot_start}</p>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-4 pt-4">
                 <a
                   href={meetingModal.meeting_link || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white text-sm font-semibold transition-all hover:shadow-lg ${
+                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-white text-xs font-black uppercase tracking-widest transition-all hover:scale-[1.02] shadow-xl ${
                     meetingModal.meeting_provider === "jitsi"
-                      ? "bg-gradient-to-r from-[#1b3d5c] to-[#00B2FF] hover:shadow-[0_4px_20px_rgba(0,178,255,0.3)]"
-                      : "bg-gradient-to-r from-[#0b5cff] to-[#2d8cff] hover:shadow-[0_4px_20px_rgba(45,140,255,0.3)]"
+                      ? "bg-sky-500 shadow-sky-100"
+                      : "bg-blue-600 shadow-blue-100"
                   }`}
                 >
-                  🚀 Join Meeting
+                  🚀 Initialize Session
                 </a>
                 <button
                   onClick={() => setMeetingModal(null)}
-                  className="px-4 py-3 rounded-xl border border-[rgba(255,255,255,0.1)] text-[#94a3b8] text-sm hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all"
+                  className="px-6 py-4 rounded-2xl border border-slate-200 text-slate-400 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
                 >
                   Close
                 </button>

@@ -59,8 +59,8 @@ export default function AdminOrganizations() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Create Form */}
         <div className="lg:col-span-1">
-          <div className="glass-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Create New</h2>
+          <div className="glass-card p-6 border border-slate-100 bg-white">
+            <h2 className="text-lg font-semibold mb-4 text-slate-900">Create New</h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[#94a3b8] mb-2">Organization Name</label>
@@ -69,7 +69,7 @@ export default function AdminOrganizations() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Acme Corp"
-                  className="auth-input"
+                  className="auth-input text-slate-900 border-slate-200"
                   required
                 />
               </div>
@@ -91,9 +91,8 @@ export default function AdminOrganizations() {
           <div className="glass-card overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
-                  <th className="p-4 text-sm font-medium text-[#94a3b8]">Name</th>
-                  <th className="p-4 text-sm font-medium text-[#94a3b8]">ID</th>
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="p-4 text-sm font-medium text-slate-500">Name</th>
                 </tr>
               </thead>
               <tbody>
@@ -103,9 +102,8 @@ export default function AdminOrganizations() {
                   <tr><td colSpan={2} className="p-4 text-center text-sm text-[#94a3b8]">No organizations yet.</td></tr>
                 ) : (
                   organizations.map((org) => (
-                    <tr key={org.id} className="border-b border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.02)] transition-colors">
-                      <td className="p-4 text-sm font-medium text-white">{org.name}</td>
-                      <td className="p-4 text-sm text-[#64748b] font-mono">{org.id}</td>
+                    <tr key={org.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                      <td className="p-4 text-sm font-medium text-slate-900">{org.name}</td>
                     </tr>
                   ))
                 )}

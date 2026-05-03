@@ -74,6 +74,7 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Kolkata'
+CELERY_TASK_ALWAYS_EAGER = True
 
 CELERY_BEAT_SCHEDULE = {
     # Clean up expired slot holds every 60 seconds
@@ -107,3 +108,11 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
     'SIGNING_KEY': SECRET_KEY,  # same key as backend/
 }
+
+# ── Email Configuration (Gmail SMTP) ──────────────────────────────────────────
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'rohanlangar31@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
