@@ -17,27 +17,25 @@ logger = logging.getLogger(__name__)
 # ============================================================
 
 def _send_email(to, subject, html_body, ics_bytes=None):
-    """Send email via Resend API."""
-    import resend
-    resend.api_key = os.getenv('RESEND_API_KEY')
+    """Send email via Django SMTP."""
+    from django.core.mail import EmailMultiAlternatives
+    import os
 
-    params = {
-        'from': 'Hapna Bookings <bookings@hapna.app>',
-        'to': [to],
-        'subject': subject,
-        'html': html_body,
-    }
+    from_email = os.getenv('EMAIL_HOST_USER', 'rohanlangar31@gmail.com')
+    
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body="Please view this email in an HTML-compatible client.",
+        from_email=from_email,
+        to=[to],
+    )
+    msg.attach_alternative(html_body, "text/html")
 
     if ics_bytes:
-        import base64
-        params['attachments'] = [{
-            'filename': 'appointment.ics',
-            'content': base64.b64encode(ics_bytes).decode(),
-            'type': 'text/calendar',
-        }]
+        msg.attach('appointment.ics', ics_bytes, 'text/calendar')
 
     try:
-        resend.Emails.send(params)
+        msg.send()
         logger.info(f"Email sent to {to}: {subject}")
     except Exception as e:
         logger.error(f"Email send failed to {to}: {e}")
@@ -62,12 +60,16 @@ def _generate_ics(booking):
 
 def _generate_ai_email_body(booking):
     """Call Grok to generate a personalized email body. Falls back to template."""
+    service = booking.service
+    intro_html = f"<p><em>{service.intro_message}</em></p>" if service and getattr(service, 'intro_message', None) else ""
+    conf_html = f"<p><strong>{service.confirmation_message}</strong></p>" if service and getattr(service, 'confirmation_message', None) else ""
+
     try:
         from notifications.grok_emails import generate_email_body
-        return generate_email_body(booking)
+        body = generate_email_body(booking)
+        return f"{intro_html}\n{body}\n{conf_html}"
     except Exception as e:
         logger.warning(f"Grok email generation failed, using template: {e}")
-        service = booking.service
         meeting_html = ""
         if booking.meeting_link:
             provider = "Jitsi Meet" if booking.meeting_provider == 'jitsi' else "Zoom"
@@ -77,6 +79,7 @@ def _generate_ai_email_body(booking):
             """
 
         return f"""
+        {intro_html}
         <h2>Booking Confirmed</h2>
         <p>Your appointment for <strong>{service.title if service else 'your service'}</strong> is confirmed.</p>
         <p><strong>Date:</strong> {booking.slot_date}</p>
@@ -84,6 +87,7 @@ def _generate_ai_email_body(booking):
         <p><strong>Location:</strong> {service.location or 'Online' if service else 'TBD'}</p>
         {meeting_html}
         <p>Reference: {booking.confirmation_token}</p>
+        {conf_html}
         """
 
 

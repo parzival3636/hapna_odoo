@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { customerApi } from "@/lib/customer-api";
+import { Loader2, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 
 export default function CancelByTokenPage() {
   const { token } = useParams();
@@ -33,41 +34,42 @@ export default function CancelByTokenPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col items-center justify-center p-6">
-      <div className="glass-card p-8 max-w-md w-full text-center animate-in fade-in zoom-in-95 duration-200">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 font-body">
+      <div className="bg-white border border-slate-200 p-12 lg:p-16 max-w-lg w-full text-center rounded-[3rem] shadow-card animate-in fade-in zoom-in-95 duration-500">
         
         {status === "idle" && (
           <>
-            <div className="w-16 h-16 rounded-full bg-[rgba(239,68,68,0.1)] flex items-center justify-center mx-auto mb-6">
-              <span className="text-2xl">⚠️</span>
+            <div className="w-20 h-20 rounded-[2rem] bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-8 shadow-sm">
+              <AlertCircle className="w-10 h-10" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Cancel Appointment?</h2>
-            <p className="text-[#94a3b8] text-sm mb-8">
-              You are about to cancel your appointment. This action cannot be undone. Are you sure you want to proceed?
+            <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-3">Critical Action</p>
+            <h2 className="text-3xl font-heading font-black text-slate-900 mb-4 tracking-tight leading-tight">Abort Appointment?</h2>
+            <p className="text-slate-500 font-medium mb-12 leading-relaxed">
+              You are about to permanently disconnect this appointment from our network. This action cannot be reversed.
             </p>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
               <button
                 onClick={handleConfirmCancel}
                 disabled={isCancelling}
-                className="w-full py-3 rounded-xl font-bold text-white bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.3)] hover:bg-[rgba(239,68,68,0.25)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white bg-red-600 hover:bg-red-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-red-100"
               >
                 {isCancelling ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                    Cancelling...
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Aborting...
                   </>
                 ) : (
-                  "Yes, Cancel Appointment"
+                  "Confirm Abort"
                 )}
               </button>
               
               <button
                 onClick={() => router.push("/")}
                 disabled={isCancelling}
-                className="w-full py-3 rounded-xl font-bold text-white bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all disabled:opacity-50"
+                className="w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-900 bg-white border border-slate-200 hover:bg-slate-50 transition-all disabled:opacity-50"
               >
-                No, Keep It
+                Keep Active
               </button>
             </div>
           </>
@@ -75,16 +77,17 @@ export default function CancelByTokenPage() {
 
         {status === "success" && (
           <>
-            <div className="w-16 h-16 rounded-full bg-[rgba(34,197,94,0.1)] flex items-center justify-center mx-auto mb-6">
-              <span className="text-2xl">✅</span>
+            <div className="w-20 h-20 rounded-[2rem] bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-8 shadow-sm">
+              <CheckCircle2 className="w-10 h-10" />
             </div>
-            <h2 className="text-xl font-bold mb-2 text-[#4ade80]">Appointment Cancelled</h2>
-            <p className="text-[#94a3b8] text-sm mb-8">
-              Your appointment has been successfully cancelled.
+            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-3">Success</p>
+            <h2 className="text-3xl font-heading font-black text-slate-900 mb-4 tracking-tight">Appointment Aborted</h2>
+            <p className="text-slate-500 font-medium mb-12 leading-relaxed">
+              Your appointment has been successfully purged from the system.
             </p>
             <button
               onClick={() => router.push("/")}
-              className="w-full py-3 rounded-xl font-bold text-white bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all"
+              className="w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white bg-slate-900 hover:bg-brand-primary transition-all shadow-xl shadow-slate-100"
             >
               Back to Home
             </button>
@@ -93,16 +96,17 @@ export default function CancelByTokenPage() {
 
         {status === "error" && (
           <>
-            <div className="w-16 h-16 rounded-full bg-[rgba(239,68,68,0.1)] flex items-center justify-center mx-auto mb-6">
-              <span className="text-2xl">❌</span>
+            <div className="w-20 h-20 rounded-[2rem] bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-8 shadow-sm">
+              <XCircle className="w-10 h-10" />
             </div>
-            <h2 className="text-xl font-bold mb-2 text-[#ef4444]">Cancellation Failed</h2>
-            <p className="text-[#94a3b8] text-sm mb-8">
+            <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-3">Error</p>
+            <h2 className="text-3xl font-heading font-black text-slate-900 mb-4 tracking-tight leading-tight">Link Invalid</h2>
+            <p className="text-red-500/70 font-medium mb-12 leading-relaxed italic">
               {errorMsg}
             </p>
             <button
               onClick={() => router.push("/")}
-              className="w-full py-3 rounded-xl font-bold text-white bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all"
+              className="w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white bg-slate-900 hover:bg-brand-primary transition-all shadow-xl shadow-slate-100"
             >
               Back to Home
             </button>

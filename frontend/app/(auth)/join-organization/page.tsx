@@ -49,19 +49,24 @@ export default function JoinOrganizationPage() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <h2 className="text-xl font-semibold text-white mb-1">Join an Organization</h2>
-      <p className="text-sm text-[#94a3b8] mb-6">Select your organization to start managing services.</p>
+      <h2 className="text-2xl font-bold text-slate-900 mb-1">Select Organization</h2>
+      <p className="text-sm text-slate-500 mb-8">Choose your organization to start managing services.</p>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] text-[#ef4444] text-sm animate-shake">
+        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm animate-shake">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="text-sm text-[#94a3b8]">Loading organizations...</div>
+        <div className="flex items-center gap-3 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+          <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          Loading organizations...
+        </div>
       ) : organizations.length === 0 ? (
-        <div className="text-sm text-[#94a3b8]">No organizations found. Please ask your Admin to create one.</div>
+        <div className="p-8 text-center bg-slate-50 border border-slate-100 rounded-3xl text-slate-400 font-medium">
+          No organizations found. <br /> Ask your Admin to create one.
+        </div>
       ) : (
         <div className="space-y-3">
           {organizations.map((org) => (
@@ -69,10 +74,10 @@ export default function JoinOrganizationPage() {
               key={org.id}
               disabled={joining}
               onClick={() => handleJoin(org.id)}
-              className="w-full flex items-center justify-between p-4 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[#7c3aed] transition-colors"
+              className="w-full flex items-center justify-between p-5 rounded-2xl border border-slate-200 bg-white hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group"
             >
-              <span className="text-white font-medium">{org.name}</span>
-              <span className="text-[#7c3aed] text-sm">Join &rarr;</span>
+              <span className="text-slate-900 font-bold group-hover:text-indigo-600 transition-colors">{org.name}</span>
+              <span className="text-indigo-600 font-black text-xs uppercase tracking-widest group-hover:translate-x-1 transition-transform">Join &rarr;</span>
             </button>
           ))}
         </div>

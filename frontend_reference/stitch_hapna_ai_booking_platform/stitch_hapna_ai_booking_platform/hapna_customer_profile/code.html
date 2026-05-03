@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Customer Profile | Hapna</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&amp;family=Playfair+Display:wght@600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#4f46e5",
+                        "on-primary": "#ffffff",
+                        "secondary": "#5b598c",
+                        "background": "#f8f9fa",
+                        "on-surface": "#191c1d",
+                        "on-primary-container": "#dad7ff",
+                        "tertiary-fixed-dim": "#ffb695",
+                        "outline-variant": "#c7c4d8",
+                        "secondary-container": "#c7c3fe",
+                        "surface-dim": "#d9dadb",
+                        "inverse-surface": "#2e3132",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#ffd2be",
+                        "surface-container-low": "#f3f4f5",
+                        "on-secondary-fixed-variant": "#444173",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-tint": "#4d44e3",
+                        "primary-fixed": "#e2dfff",
+                        "outline": "#777587",
+                        "on-tertiary-fixed": "#351000",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "tertiary": "#7e3000",
+                        "surface": "#f8f9fa",
+                        "on-primary-fixed": "#0f0069",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#ffdbcc",
+                        "on-error-container": "#93000a",
+                        "on-background": "#191c1d",
+                        "tertiary-container": "#a44100",
+                        "on-secondary-container": "#514f81",
+                        "surface-container-highest": "#e1e3e4",
+                        "secondary-fixed-dim": "#c4c1fb",
+                        "on-surface-variant": "#464555",
+                        "primary": "#3525cd",
+                        "surface-bright": "#f8f9fa",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#edeeef",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e3dfff",
+                        "surface-container-high": "#e7e8e9",
+                        "on-secondary-fixed": "#181445",
+                        "inverse-primary": "#c3c0ff",
+                        "surface-variant": "#e1e3e4",
+                        "on-tertiary-fixed-variant": "#7b2f00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Libre Baskerville"],
+                        "display-lg": ["Playfair Display"],
+                        "body-lg": ["Libre Baskerville"],
+                        "subheading": ["Libre Baskerville"],
+                        "headline-h2": ["Playfair Display"],
+                        "label-sm": ["Libre Baskerville"],
+                        "headline-h1": ["Playfair Display"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 24px;
+            bottom: 0;
+            width: 1px;
+            background-color: #e2e8f0;
+        }
+        .timeline-item:last-child .timeline-line::before {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface">
+<!-- TopNavBar from Shared Components -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-16 max-w-7xl mx-auto bg-white border-b border-slate-200">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-bold font-['Playfair_Display'] text-indigo-600">Hapna</span>
+<div class="hidden md:flex gap-6">
+<a class="text-slate-600 hover:text-indigo-500 transition-colors font-body-md text-body-md" href="#">Dashboard</a>
+<a class="text-slate-600 hover:text-indigo-500 transition-colors font-body-md text-body-md" href="#">Bookings</a>
+<a class="text-slate-600 hover:text-indigo-500 transition-colors font-body-md text-body-md" href="#">Clients</a>
+<a class="text-slate-600 hover:text-indigo-500 transition-colors font-body-md text-body-md" href="#">Analytics</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-600 cursor-pointer">notifications</span>
+<span class="material-symbols-outlined text-slate-600 cursor-pointer">settings</span>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-slate-100">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="A sophisticated professional portrait of a woman in a bright, airy studio environment. She is wearing a soft cream-colored linen shirt, embodying a high-end editorial minimalist aesthetic. The lighting is diffused and natural, highlighting clean skin and a serene expression. The background is a pure, minimalist white wall with soft, subtle shadows, aligning with a premium boutique journal visual style." src="https://lh3.googleusercontent.com/aida/ADBb0ujOMUqxd-_Cg8D13rQSTH-mEQgu2OXgfGf1DgBC0KEWs_0Km4tZr8xp1XYJ3bhBkaFgm4gqXEz8ytxdxq62kT6ehO9DUq7siVonz7jhCn1xzouaC0ynYj3qdpeKsUdkPojJ5LKcTm7WbUSaIwWw1xZ9UbrNcD6C-ql3j9EGAjv6nBhLmI6FGWNUCRp8isbKKqd6Gs88Yjpy9k1rdcGDsgID28Lkm3bIqGECuHYUrEVpWlp-hy0OuCPKm6-UPL6tbiNL4dkE5r-m"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Grid -->
+<main class="pt-24 pb-16 px-8 max-w-7xl mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-10 gap-12">
+<!-- Left Column (60%): My Profile Form -->
+<div class="lg:col-span-6">
+<header class="mb-10">
+<h1 class="font-headline-h1 text-headline-h1 text-on-surface mb-2">My Profile</h1>
+<p class="font-body-md text-body-md text-outline">Manage your personal information and preferences.</p>
+</header>
+<section class="bg-white border border-outline-variant p-8 mb-8">
+<!-- Avatar Upload -->
+<div class="flex justify-center mb-10">
+<div class="relative group cursor-pointer">
+<div class="w-32 h-32 rounded-full overflow-hidden border-2 border-indigo-50 border-offset-4">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="A close-up studio photograph of a young professional with a calm and confident expression, shot in a high-key lighting style. The subject is centered in the frame, with the background being a soft, minimalist gray gradient. The visual aesthetic is clean, intellectual, and authoritative, suitable for a premium executive profile interface." src="https://lh3.googleusercontent.com/aida/ADBb0ujOMUqxd-_Cg8D13rQSTH-mEQgu2OXgfGf1DgBC0KEWs_0Km4tZr8xp1XYJ3bhBkaFgm4gqXEz8ytxdxq62kT6ehO9DUq7siVonz7jhCn1xzouaC0ynYj3qdpeKsUdkPojJ5LKcTm7WbUSaIwWw1xZ9UbrNcD6C-ql3j9EGAjv6nBhLmI6FGWNUCRp8isbKKqd6Gs88Yjpy9k1rdcGDsgID28Lkm3bIqGECuHYUrEVpWlp-hy0OuCPKm6-UPL6tbiNL4dkE5r-m"/>
+</div>
+<div class="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-3xl">photo_camera</span>
+</div>
+</div>
+</div>
+<!-- Profile Form -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-outline uppercase">Full Name</label>
+<input class="border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md" type="text" value="Eleanor Fitzgerald"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-outline uppercase">Phone</label>
+<div class="flex">
+<span class="inline-flex items-center px-3 border border-r-0 border-outline-variant bg-surface text-outline font-body-md">+44</span>
+<input class="w-full border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md" type="tel" value="7700 900123"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-outline uppercase">Date of Birth</label>
+<input class="border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md" type="date" value="1992-05-14"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-outline uppercase">Gender</label>
+<select class="border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md">
+<option>Female</option>
+<option>Male</option>
+<option>Non-binary</option>
+<option>Prefer not to say</option>
+</select>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-outline uppercase">City</label>
+<input class="border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md" placeholder="Start typing city..." type="text"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-outline uppercase">Preferred Language</label>
+<select class="border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md">
+<option>English (UK)</option>
+<option>French</option>
+<option>German</option>
+<option>Spanish</option>
+</select>
+</div>
+</div>
+<!-- Toggle Section -->
+<div class="mt-8 flex items-center justify-between py-4 border-t border-slate-50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-indigo-600">chat</span>
+<div>
+<p class="font-body-md text-body-md font-bold">WhatsApp Opt-in</p>
+<p class="font-label-sm text-label-sm text-outline">Receive booking confirmations via WhatsApp.</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+</div>
+<!-- Integration Section -->
+<div class="mt-4 p-6 bg-indigo-50 border border-indigo-100 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-indigo-600 text-3xl">calendar_month</span>
+<div>
+<h3 class="font-subheading text-subheading text-primary">Google Calendar</h3>
+<p class="font-body-md text-[14px] text-indigo-700">Sync your appointments automatically.</p>
+</div>
+</div>
+<button class="bg-primary-container text-white px-6 py-2 font-label-sm text-label-sm uppercase hover:opacity-90 transition-all">Connect</button>
+</div>
+<!-- Timezone -->
+<div class="mt-6 flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-outline uppercase">Timezone</label>
+<select class="border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md">
+<option>(GMT+00:00) London</option>
+<option>(GMT-05:00) New York</option>
+<option>(GMT+01:00) Paris</option>
+</select>
+</div>
+<!-- Progress Bar -->
+<div class="mt-12">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-sm text-label-sm text-outline uppercase">Profile Completion</span>
+<span class="font-label-sm text-label-sm text-primary">85%</span>
+</div>
+<div class="w-full bg-slate-100 h-1.5 rounded-full">
+<div class="bg-primary-container h-1.5 rounded-full" style="width: 85%"></div>
+</div>
+</div>
+<div class="mt-10 flex justify-end">
+<button class="bg-primary text-white px-10 py-4 font-label-sm text-label-sm uppercase tracking-widest hover:opacity-90 transition-all">Save Changes</button>
+</div>
+</section>
+</div>
+<!-- Right Column (40%): Booking History & Waitlists -->
+<div class="lg:col-span-4 space-y-8">
+<!-- Booking History -->
+<section class="bg-white border border-outline-variant p-8">
+<h2 class="font-headline-h2 text-headline-h2 mb-8">Booking History</h2>
+<!-- Month Group -->
+<div class="mb-10">
+<p class="font-label-sm text-label-sm text-outline uppercase mb-6 tracking-widest">October 2023</p>
+<div class="space-y-8 relative">
+<!-- Timeline Entry -->
+<div class="flex gap-4 relative timeline-item">
+<div class="timeline-line flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-emerald-500 z-10 border-4 border-white shadow-sm"></div>
+</div>
+<div class="flex-1 pb-4">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-subheading text-[16px] leading-tight">Dermatology Consult</h4>
+<span class="material-symbols-outlined text-slate-400 text-sm">globe</span>
+</div>
+<p class="text-label-sm text-outline mb-3">Oct 12, 10:30 AM</p>
+<span class="px-2 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-tighter">Confirmed</span>
+</div>
+</div>
+<div class="flex gap-4 relative timeline-item">
+<div class="timeline-line flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-slate-400 z-10 border-4 border-white shadow-sm"></div>
+</div>
+<div class="flex-1 pb-4">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-subheading text-[16px] leading-tight">Private Pilates Session</h4>
+<span class="material-symbols-outlined text-slate-400 text-sm">chat</span>
+</div>
+<p class="text-label-sm text-outline mb-3">Oct 05, 04:00 PM</p>
+<span class="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-tighter">Completed</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Month Group -->
+<div>
+<p class="font-label-sm text-label-sm text-outline uppercase mb-6 tracking-widest">September 2023</p>
+<div class="space-y-8 relative">
+<div class="flex gap-4 relative timeline-item">
+<div class="timeline-line flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-amber-500 z-10 border-4 border-white shadow-sm"></div>
+</div>
+<div class="flex-1 pb-4">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-subheading text-[16px] leading-tight">Business Strategy Audit</h4>
+<span class="material-symbols-outlined text-slate-400 text-sm">call</span>
+</div>
+<p class="text-label-sm text-outline mb-3">Sep 28, 02:00 PM</p>
+<span class="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-tighter">Pending</span>
+</div>
+</div>
+<div class="flex gap-4 relative timeline-item">
+<div class="timeline-line flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-rose-500 z-10 border-4 border-white shadow-sm"></div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-subheading text-[16px] leading-tight">Hair Sculpting Appointment</h4>
+<span class="material-symbols-outlined text-slate-400 text-sm">globe</span>
+</div>
+<p class="text-label-sm text-outline mb-3">Sep 15, 11:00 AM</p>
+<span class="px-2 py-1 bg-rose-50 text-rose-700 text-[10px] font-bold uppercase tracking-tighter">Cancelled</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Active Waitlists -->
+<section>
+<h2 class="font-headline-h2 text-headline-h2 mb-6">Active Waitlists</h2>
+<div class="space-y-4">
+<!-- Waitlist Card -->
+<div class="bg-white border border-outline-variant p-6 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4">
+<span class="bg-indigo-600 text-white px-3 py-1 font-label-sm text-[10px]">#2 IN LINE</span>
+</div>
+<h3 class="font-subheading text-[18px] mb-1">Gourmet Tasting Event</h3>
+<p class="text-body-md text-outline text-[14px] mb-6">Nov 22, 2023 • 08:00 PM</p>
+<button class="text-rose-600 font-label-sm text-[11px] uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity">
+<span class="material-symbols-outlined text-sm">close</span> Leave Waitlist
+                            </button>
+</div>
+<!-- Secondary Waitlist Card -->
+<div class="bg-white border border-outline-variant p-6 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4">
+<span class="bg-slate-200 text-slate-600 px-3 py-1 font-label-sm text-[10px]">#12 IN LINE</span>
+</div>
+<h3 class="font-subheading text-[18px] mb-1">Yoga Flow Intensive</h3>
+<p class="text-body-md text-outline text-[14px] mb-6">Dec 02, 2023 • 07:30 AM</p>
+<button class="text-rose-600 font-label-sm text-[11px] uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity">
+<span class="material-symbols-outlined text-sm">close</span> Leave Waitlist
+                            </button>
+</div>
+</div>
+</section>
+<!-- Visual Content Anchor -->
+<div class="relative h-64 border border-outline-variant overflow-hidden group">
+<img alt="Lifestyle" class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" data-alt="A tranquil, high-end spa interior with soft natural lighting streaming through large windows. The scene features minimalist architecture, stone textures, and a single branch of cherry blossoms in a ceramic vase. The color palette is dominated by off-whites, soft beiges, and muted indigos, creating an atmosphere of editorial sophistication and peace." src="https://lh3.googleusercontent.com/aida/ADBb0ugAlcOxgCNwS71v6E0TI1YokQernWs5ElOgie2wxMrSVLq2YDr4wYhmTuYgOtywZHX_DR69RDM__qI6nQPQrOP71kOAfngzvB_Za1vtRNu6vQMsAb-SlnxcdeCvTCx_4r9y_w-XwhMjIBXISA9_Ng-6Dwanh5Jy6ahup0fbjOk1kJLE7aap-41i7F1hFGxIz4Ub7wMPPOV3EZ3wAylGFbN2E81rBPKsuRa4lNepe3btU_4hky_W3fvxWEoqNB-AtWSUyZJsby0"/>
+<div class="absolute inset-0 bg-indigo-900/10 mix-blend-multiply"></div>
+<div class="absolute bottom-6 left-6 right-6 text-white">
+<p class="font-label-sm text-[10px] uppercase tracking-widest mb-1">Next Expected Booking</p>
+<h4 class="font-display-lg text-2xl">Wellness Retreat</h4>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- SideNavBar (Mobile) -->
+<div class="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-50 flex justify-around py-4">
+<span class="material-symbols-outlined text-indigo-600">dashboard</span>
+<span class="material-symbols-outlined text-slate-400">calendar_today</span>
+<span class="material-symbols-outlined text-slate-400">group</span>
+<span class="material-symbols-outlined text-slate-400">extension</span>
+<span class="material-symbols-outlined text-slate-400">settings</span>
+</div>
+</body></html>

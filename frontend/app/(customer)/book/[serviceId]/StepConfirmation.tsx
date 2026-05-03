@@ -20,78 +20,78 @@ export default function StepConfirmation({ bookingData, service }: Props) {
     : "";
 
   return (
-    <div className="glass-card p-8 text-center">
+    <div className="p-4 text-center">
       {/* Icon */}
       <div
-        className={`w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl ${
+        className={`w-24 h-24 rounded-[2.5rem] mx-auto mb-8 flex items-center justify-center text-5xl shadow-xl ${
           isConfirmed
-            ? "bg-[rgba(34,197,94,0.15)]"
-            : "bg-[rgba(251,191,36,0.15)]"
+            ? "bg-emerald-50 text-emerald-500 shadow-emerald-100"
+            : "bg-amber-50 text-amber-500 shadow-amber-100"
         }`}
       >
-        {isConfirmed ? "✅" : "⏳"}
+        {isConfirmed ? "✓" : "⏳"}
       </div>
 
-      <h2 className="text-2xl font-bold mb-2">
+      <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">
         {isConfirmed
-          ? "Booking Confirmed!"
-          : "Booking Reserved"}
+          ? "Appointment Confirmed!"
+          : "Request Received"}
       </h2>
-      <p className="text-[#94a3b8] mb-8">
+      <p className="text-slate-500 font-medium mb-10 max-w-sm mx-auto">
         {isConfirmed
-          ? "Your appointment has been confirmed. You'll receive a confirmation email shortly."
-          : "Your booking is pending organiser approval. You'll be notified once confirmed."}
+          ? "Great news! Your booking is locked in. We've sent the details to your inbox."
+          : "We've received your request. The provider will review it and notify you shortly."}
       </p>
 
-      {/* Details */}
-      <div className="bg-[rgba(255,255,255,0.03)] rounded-xl p-6 mb-8 text-left max-w-md mx-auto">
-        <div className="space-y-3">
-          <div className="flex justify-between text-sm">
-            <span className="text-[#64748b]">Service</span>
-            <span className="text-white font-medium">{service.title}</span>
+      {/* Details Card */}
+      <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 mb-10 text-left max-w-md mx-auto shadow-sm">
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Service</span>
+            <span className="text-sm font-black text-slate-900">{service.title}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-[#64748b]">Date</span>
-            <span className="text-white font-medium">{dateLabel}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</span>
+            <span className="text-sm font-black text-slate-900">{dateLabel}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-[#64748b]">Time</span>
-            <span className="text-white font-medium">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</span>
+            <span className="text-sm font-black text-slate-900">
               {bookingData.slot_start?.slice(0, 5)} – {bookingData.slot_end?.slice(0, 5)}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-[#64748b]">Status</span>
+          <div className="flex justify-between items-center pt-4 border-t border-slate-200/50">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</span>
             <span
-              className={`font-bold ${
-                isConfirmed ? "text-[#4ade80]" : "text-[#fbbf24]"
+              className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+                isConfirmed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
               }`}
             >
               {bookingData.status?.toUpperCase()}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-[#64748b]">Booking ID</span>
-            <span className="text-[#94a3b8] font-mono text-xs">
-              {bookingData.id?.slice(0, 8)}...
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Booking Ref</span>
+            <span className="text-[10px] font-mono text-slate-500">
+              #{bookingData.id?.slice(0, 8).toUpperCase()}
             </span>
           </div>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+      <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
         <Link
           href="/services"
-          className="flex-1 py-3 rounded-xl bg-[rgba(255,255,255,0.06)] text-[#94a3b8] font-medium hover:bg-[rgba(255,255,255,0.1)] transition-all text-center"
+          className="flex-1 py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm uppercase tracking-widest hover:bg-slate-50 transition-all text-center shadow-sm"
         >
-          Browse More
+          Explore More
         </Link>
         <Link
           href={`/services/${service.id}`}
-          className="flex-1 py-3 rounded-xl bg-[#7c3aed] text-white font-medium hover:bg-[#6d28d9] transition-all text-center"
+          className="flex-1 py-4 rounded-2xl bg-indigo-600 text-white font-black text-sm uppercase tracking-widest hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all text-center shadow-xl shadow-indigo-100"
         >
-          Book Again
+          Book Another
         </Link>
       </div>
     </div>

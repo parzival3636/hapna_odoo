@@ -39,13 +39,13 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-white">Loading settings...</div>;
+  if (loading) return <div className="p-8 text-slate-500">Loading settings...</div>;
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8">
       <header>
-        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-        <p className="text-[#94a3b8]">Manage your integrations and account preferences</p>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Settings</h1>
+        <p className="text-slate-500">Manage your integrations and account preferences</p>
       </header>
 
       {syncStatus === "successfully_connected" && (
@@ -56,13 +56,13 @@ export default function SettingsPage() {
       )}
 
       {/* Integrations Section */}
-      <section className="glass-card overflow-hidden">
-        <div className="p-6 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
-          <h2 className="text-xl font-bold text-white">Integrations</h2>
+      <section className="glass-card overflow-hidden bg-white border-slate-200 shadow-sm">
+        <div className="p-6 border-b border-slate-100 bg-slate-50">
+          <h2 className="text-xl font-bold text-slate-900">Integrations</h2>
         </div>
         <div className="p-6 space-y-6">
           {/* Google Calendar Row */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-100">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center shadow-lg">
                 <img 
@@ -72,8 +72,8 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <h3 className="font-bold text-white">Google Calendar</h3>
-                <p className="text-sm text-[#94a3b8]">
+                <h3 className="font-bold text-slate-900">Google Calendar</h3>
+                <p className="text-sm text-slate-500">
                   {user?.google_calendar_connected 
                     ? "Syncing your busy slots and adding new bookings automatically." 
                     : "Connect your calendar to sync availability dynamically."}
@@ -89,7 +89,7 @@ export default function SettingsPage() {
             ) : (
               <button
                 onClick={handleConnectGoogle}
-                className="px-6 py-2.5 rounded-lg bg-[#7c3aed] text-white font-bold hover:bg-[#6d28d9] transition-all shadow-[0_0_15px_rgba(124,58,237,0.3)]"
+                className="px-6 py-2.5 rounded-lg bg-brand-soft text-brand-primary font-bold hover:bg-brand-primary hover:text-white transition-all shadow-sm"
               >
                 Connect
               </button>
@@ -97,19 +97,19 @@ export default function SettingsPage() {
           </div>
 
           {/* Zoom Integration Row */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] opacity-80">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-100 opacity-80">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-[#2d8cff] flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 rounded-lg bg-[#2d8cff] flex items-center justify-center shadow-sm">
                 <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M4 4h10v10H4V4zm12 2l4-2v12l-4-2V6z"/>
                 </svg>
               </div>
               <div>
-                <h3 className="font-bold text-white">Zoom Meetings</h3>
-                <p className="text-sm text-[#94a3b8]">Automatically generate Zoom links for every booking.</p>
+                <h3 className="font-bold text-slate-900">Zoom Meetings</h3>
+                <p className="text-sm text-slate-500">Automatically generate Zoom links for every booking.</p>
               </div>
             </div>
-            <div className="px-4 py-2 rounded-lg bg-[rgba(255,255,255,0.1)] text-[#94a3b8] text-sm font-medium">
+            <div className="px-4 py-2 rounded-lg bg-slate-200 text-slate-500 text-sm font-medium">
               Enabled (Global)
             </div>
           </div>
@@ -117,27 +117,27 @@ export default function SettingsPage() {
       </section>
 
       {/* Account Section */}
-      <section className="glass-card overflow-hidden">
-        <div className="p-6 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
-          <h2 className="text-xl font-bold text-white">Account Preferences</h2>
+      <section className="glass-card overflow-hidden bg-white border-slate-200 shadow-sm">
+        <div className="p-6 border-b border-slate-100 bg-slate-50">
+          <h2 className="text-xl font-bold text-slate-900">Account Preferences</h2>
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#94a3b8]">Display Name</label>
+              <label className="text-sm font-medium text-slate-500">Display Name</label>
               <input 
                 type="text" 
                 defaultValue={user?.username} 
-                className="auth-input bg-[rgba(255,255,255,0.03)]"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900"
                 readOnly
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#94a3b8]">Email Address</label>
+              <label className="text-sm font-medium text-slate-500">Email Address</label>
               <input 
                 type="email" 
                 defaultValue={user?.email} 
-                className="auth-input bg-[rgba(255,255,255,0.03)]"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900"
                 readOnly
               />
             </div>

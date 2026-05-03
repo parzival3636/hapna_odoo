@@ -1,9 +1,21 @@
-"use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { customerApi } from "@/lib/customer-api";
 import { CancelDialog } from "./CancelDialog";
+import { 
+  Calendar as CalendarIcon, 
+  Clock, 
+  ChevronLeft, 
+  MoreVertical, 
+  CheckCircle, 
+  AlertCircle,
+  XCircle,
+  Hash,
+  MessageSquare,
+  ArrowRight,
+  Info
+} from "lucide-react";
+import QRCode from "react-qr-code";
 
 interface BookingAnswer {
   id: string;
@@ -23,10 +35,14 @@ export interface Booking {
   status: string;
   capacity_booked: number;
   payment_status: string;
+  payment_amount?: string;
+  paid_at?: string;
   booking_channel: string;
   notes: string;
   answers: BookingAnswer[];
 }
+
+import toast from "react-hot-toast";
 
 export function BookingDetail({ booking: initialBooking }: { booking: Booking }) {
   const router = useRouter();
@@ -48,8 +64,28 @@ export function BookingDetail({ booking: initialBooking }: { booking: Booking })
       // Update local state to cancelled
       setBooking((prev) => ({ ...prev, status: "cancelled" }));
       setIsCancelOpen(false);
+      toast.success("Appointment successfully disconnected from registry.", {
+        icon: "🛡️",
+        style: {
+          borderRadius: "1rem",
+          background: "#333",
+          color: "#fff",
+          fontSize: "12px",
+          fontWeight: "bold",
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+        },
+      });
     } catch (err: any) {
-      setError(err?.data?.message || err.message || "Failed to cancel booking.");
+      const msg = err?.data?.message || err.message || "Failed to cancel booking.";
+      setError(msg);
+      toast.error(msg, {
+        style: {
+          borderRadius: "1rem",
+          fontSize: "12px",
+          fontWeight: "bold",
+        }
+      });
     } finally {
       setIsCancelling(false);
     }
@@ -69,91 +105,154 @@ export function BookingDetail({ booking: initialBooking }: { booking: Booking })
   const timeLabel = `${booking.slot_start.slice(0, 5)} – ${booking.slot_end.slice(0, 5)}`;
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 w-full pt-20">
-      <div className="mb-6">
+    <div className="max-w-4xl mx-auto py-12 px-6 w-full pt-32">
+      <div className="mb-12 flex items-center justify-between">
         <button
           onClick={() => router.back()}
-          className="text-sm text-[#94a3b8] hover:text-white transition-colors"
+          className="group flex items-center gap-4 text-xs font-black text-slate-500 hover:text-brand-primary uppercase tracking-widest transition-all"
         >
-          ← Back
+          Return to Registry
         </button>
+        
+        <div className="flex items-center gap-3">
+          <div className="h-px w-8 bg-slate-100 hidden sm:block" />
+          <span className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest border shadow-sm ${
+            booking.status === "confirmed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+            booking.status === "pending" ? "bg-amber-50 text-amber-600 border-amber-100" :
+            booking.status === "completed" ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
+            "bg-slate-50 text-slate-500 border-slate-100"
+          }`}>
+            {booking.status}
+          </span>
+        </div>
       </div>
 
-      <div className="glass-card overflow-hidden">
-        {/* Header */}
-        <div className="p-6 border-b border-[rgba(255,255,255,0.05)] flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-2">{booking.service_title}</h1>
-            <p className="text-[#94a3b8] text-sm mb-4">
-              {dateLabel} • {timeLabel}
-            </p>
-            <div className="flex gap-2 items-center text-xs font-semibold">
-              <span className={`px-2 py-1 rounded-md uppercase tracking-wider ${
-                booking.status === "confirmed" ? "bg-[rgba(34,197,94,0.15)] text-[#4ade80] border border-[rgba(34,197,94,0.2)]" :
-                booking.status === "pending" ? "bg-[rgba(251,191,36,0.15)] text-[#fbbf24] border border-[rgba(251,191,36,0.2)]" :
-                booking.status === "cancelled" ? "bg-[rgba(239,68,68,0.15)] text-[#ef4444] border border-[rgba(239,68,68,0.2)]" :
-                "bg-[rgba(148,163,184,0.15)] text-[#94a3b8] border border-[rgba(148,163,184,0.2)]"
-              }`}>
-                {booking.status}
+      <div className="bg-white border border-slate-100 rounded-[4rem] shadow-card overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
+        {/* Aesthetic Anchors */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" />
+        
+        {/* Header Section */}
+        <div className="p-12 lg:p-16 border-b border-slate-50 bg-gradient-to-br from-slate-50/30 to-white relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+            <div className="flex-1">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-soft text-brand-primary rounded-pill text-xs font-black uppercase tracking-[0.2em] mb-8 border border-brand-primary/10">
+                <Hash className="w-3 h-3" />
+                Artifact #{booking.id.slice(0, 8).toUpperCase()}
               </span>
-              <span className="px-2 py-1 rounded-md bg-[rgba(255,255,255,0.05)] text-[#94a3b8] border border-[rgba(255,255,255,0.1)]">
-                {booking.booking_channel}
-              </span>
+              <h1 className="text-4xl lg:text-6xl font-heading font-black text-slate-900 tracking-tighter leading-[1.1] mb-10">
+                {booking.service_title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-10">
+                <div className="flex items-center gap-4 text-slate-700 font-black text-xs uppercase tracking-widest">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-brand-primary shadow-sm">
+                    <CalendarIcon className="w-5 h-5" />
+                  </div>
+                  {dateLabel}
+                </div>
+                <div className="flex items-center gap-4 text-slate-700 font-black text-xs uppercase tracking-widest">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-brand-primary shadow-sm">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  {timeLabel}
+                </div>
+              </div>
             </div>
+            
+            {isActive && (
+              <div className="flex flex-col sm:flex-row items-stretch gap-4 min-w-[200px]">
+                <button
+                  onClick={handleReschedule}
+                  className="px-8 py-5 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black uppercase tracking-widest hover:border-brand-primary hover:text-brand-primary transition-all shadow-sm active:scale-95"
+                >
+                  Reschedule
+                </button>
+                <button
+                  onClick={() => setIsCancelOpen(true)}
+                  className="px-8 py-5 rounded-2xl bg-red-50 text-red-600 text-xs font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100 active:scale-95"
+                >
+                  Abort Session
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        {isActive && (
-          <div className="p-4 bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.05)] flex flex-wrap gap-3">
-            <button
-              onClick={handleReschedule}
-              className="px-4 py-2 text-sm font-bold text-white bg-[rgba(124,58,237,0.15)] border border-[rgba(124,58,237,0.3)] rounded-lg hover:bg-[rgba(124,58,237,0.25)] transition-all flex-1 text-center"
-            >
-              Reschedule
-            </button>
-            <button
-              onClick={() => setIsCancelOpen(true)}
-              className="px-4 py-2 text-sm font-bold text-[#ef4444] bg-[rgba(239,68,68,0.05)] border border-[rgba(239,68,68,0.2)] rounded-lg hover:bg-[rgba(239,68,68,0.1)] transition-all flex-1 text-center"
-            >
-              Cancel Appointment
-            </button>
-          </div>
-        )}
-
-        {/* Intake Answers */}
-        <div className="p-6">
-          <h3 className="text-sm font-semibold text-[#94a3b8] uppercase tracking-wider mb-4">
-            Booking Details
-          </h3>
-          
-          <div className="space-y-4">
-            {booking.capacity_booked > 1 && (
-              <div className="bg-[rgba(255,255,255,0.02)] p-4 rounded-xl border border-[rgba(255,255,255,0.05)]">
-                <p className="text-xs text-[#64748b] mb-1">Seats Booked</p>
-                <p className="text-sm text-white font-medium">{booking.capacity_booked}</p>
-              </div>
-            )}
+        {/* Details Grid */}
+        <div className="p-12 lg:p-16 space-y-16 relative z-10">
+          <div>
+            <h3 className="text-xs font-black text-slate-600 uppercase tracking-[0.25em] mb-10 flex items-center gap-4">
+              <div className="w-2 h-2 rounded-full bg-brand-primary" />
+              Ingested Network Intelligence
+            </h3>
             
-            {booking.answers.map((ans) => (
-              <div key={ans.id} className="bg-[rgba(255,255,255,0.02)] p-4 rounded-xl border border-[rgba(255,255,255,0.05)]">
-                <p className="text-xs text-[#64748b] mb-1">{ans.question_text || "Question"}</p>
-                <p className="text-sm text-white font-medium">{ans.answer_text}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="p-8 rounded-[2.5rem] bg-slate-50 border border-slate-100 group hover:bg-white hover:border-brand-primary/20 transition-all duration-500 shadow-sm flex flex-col items-center justify-center">
+                <div className="flex items-center gap-3 mb-4 self-start">
+                  <Hash className="w-4 h-4 text-slate-500 group-hover:text-brand-primary transition-colors" />
+                  <p className="text-xs text-slate-600 font-black uppercase tracking-widest">Registry QR Code</p>
+                </div>
+                <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 opacity-90 group-hover:opacity-100 transition-opacity mb-3">
+                  <QRCode value={booking.id} size={96} />
+                </div>
+                <p className="text-xs text-slate-500 font-black font-mono tracking-tight group-hover:text-brand-primary transition-colors">#{booking.id.toUpperCase()}</p>
               </div>
-            ))}
 
-            {booking.notes && (
-              <div className="bg-[rgba(255,255,255,0.02)] p-4 rounded-xl border border-[rgba(255,255,255,0.05)]">
-                <p className="text-xs text-[#64748b] mb-1">Notes</p>
-                <p className="text-sm text-white font-medium whitespace-pre-wrap">{booking.notes}</p>
+              <div className="p-8 rounded-[2.5rem] bg-slate-50 border border-slate-100 group hover:bg-white hover:border-brand-primary/20 transition-all duration-500 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-brand-primary transition-colors" />
+                  <p className="text-xs text-slate-600 font-black uppercase tracking-widest">Inbound Channel</p>
+                </div>
+                <p className="text-lg text-slate-900 font-black group-hover:text-brand-primary transition-colors uppercase tracking-tight">{booking.booking_channel}</p>
               </div>
-            )}
+
+              {booking.capacity_booked > 1 && (
+                <div className="p-8 rounded-[2.5rem] bg-slate-50 border border-slate-100 group hover:bg-white hover:border-brand-primary/20 transition-all duration-500 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <CheckCircle className="w-4 h-4 text-slate-500 group-hover:text-brand-primary transition-colors" />
+                    <p className="text-xs text-slate-600 font-black uppercase tracking-widest">Capacity Allocation</p>
+                  </div>
+                  <p className="text-xl text-slate-900 font-black group-hover:text-brand-primary transition-colors">{booking.capacity_booked} Units</p>
+                </div>
+              )}
+
+              {booking.payment_status === "paid" && (
+                <div className="p-8 rounded-[2.5rem] bg-emerald-50 border border-emerald-100 group hover:bg-white hover:border-emerald-300 transition-all duration-500 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <CheckCircle className="w-4 h-4 text-emerald-500 group-hover:text-emerald-600 transition-colors" />
+                    <p className="text-xs text-emerald-600 font-black uppercase tracking-widest">Payment Settled</p>
+                  </div>
+                  <p className="text-2xl text-emerald-700 font-black tracking-tight mb-2">₹{booking.payment_amount}</p>
+                  {booking.paid_at && (
+                    <p className="text-sm text-emerald-600/80 font-medium">{new Date(booking.paid_at).toLocaleString()}</p>
+                  )}
+                </div>
+              )}
+              
+              {booking.answers && booking.answers.map((ans) => (
+                <div key={ans.id} className="p-8 rounded-[2.5rem] bg-slate-50 border border-slate-100 group hover:bg-white hover:border-brand-primary/20 transition-all duration-500 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <MessageSquare className="w-4 h-4 text-slate-500 group-hover:text-brand-primary transition-colors" />
+                    <p className="text-xs text-slate-600 font-black uppercase tracking-widest">{ans.question_text || "Logic Node"}</p>
+                  </div>
+                  <p className="text-lg text-slate-900 font-bold group-hover:text-brand-primary transition-colors leading-relaxed">{ans.answer_text}</p>
+                </div>
+              ))}
+
+                <div className="md:col-span-2 p-8 rounded-[2.5rem] bg-slate-50 border border-slate-100 group hover:bg-white hover:border-brand-primary/20 transition-all duration-500 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Info className="w-4 h-4 text-slate-500 group-hover:text-brand-primary transition-colors" />
+                    <p className="text-xs text-slate-600 font-black uppercase tracking-widest">Organiser Handover Notes</p>
+                  </div>
+                  <p className="text-lg text-slate-900 font-medium leading-relaxed whitespace-pre-wrap">{booking.notes}</p>
+                </div>
+            </div>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="mt-4 p-4 rounded-xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] text-[#ef4444] text-sm">
+        <div className="mt-10 p-8 rounded-[2.5rem] bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-6 animate-in shake duration-500 shadow-sm">
+          <AlertCircle className="w-6 h-6" />
           {error}
         </div>
       )}

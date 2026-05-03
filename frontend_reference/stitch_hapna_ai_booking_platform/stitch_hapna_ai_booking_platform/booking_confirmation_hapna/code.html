@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=EB+Garamond:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .font-garamond { font-family: 'EB+Garamond', serif; }
+        .font-geist { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed": "#e2dfff",
+                    "on-error-container": "#93000a",
+                    "tertiary-container": "#4b4dd8",
+                    "on-secondary-fixed": "#002113",
+                    "error": "#ba1a1a",
+                    "surface-container-low": "#eff4ff",
+                    "outline-variant": "#c7c4d8",
+                    "on-secondary": "#ffffff",
+                    "surface-variant": "#d3e4fe",
+                    "surface-dim": "#cbdbf5",
+                    "on-tertiary-container": "#d9d8ff",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "primary": "#3525cd",
+                    "surface-bright": "#f8f9ff",
+                    "secondary-fixed": "#6ffbbe",
+                    "outline": "#777587",
+                    "background": "#f8f9ff",
+                    "surface-container-high": "#dce9ff",
+                    "inverse-surface": "#213145",
+                    "on-surface": "#0b1c30",
+                    "tertiary-fixed": "#e1e0ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-secondary-container": "#00714d",
+                    "primary-container": "#4f46e5",
+                    "surface-tint": "#4d44e3",
+                    "secondary-container": "#6cf8bb",
+                    "on-primary-container": "#dad7ff",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "secondary": "#006c49",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-container": "#e5eeff",
+                    "on-primary-fixed": "#0f0069",
+                    "secondary-fixed-dim": "#4edea3",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error": "#ffffff",
+                    "surface": "#f8f9ff",
+                    "on-surface-variant": "#464555",
+                    "tertiary-fixed-dim": "#c0c1ff",
+                    "inverse-primary": "#c3c0ff",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed": "#07006c",
+                    "on-background": "#0b1c30",
+                    "tertiary": "#3130c0",
+                    "on-tertiary-fixed-variant": "#2f2ebe"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "1rem",
+                    "unit": "4px",
+                    "max-width": "1280px",
+                    "margin": "32px",
+                    "gutter": "24px",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "md": "1.5rem",
+                    "xs": "0.5rem"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "h3": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "h2": ["Inter"],
+                    "button": ["Inter"],
+                    "h1": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "h3": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "label-caps": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "h2": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "button": ["15px", {"lineHeight": "1.0", "fontWeight": "600"}],
+                    "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background font-body-md text-on-background min-h-screen">
+<header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
+<div class="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+<span class="text-2xl font-black tracking-tight text-indigo-600 dark:text-indigo-400 font-geist">Hapna</span>
+<div class="hidden md:flex items-center space-gap-6 gap-6">
+<a class="text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 font-semibold px-1 font-geist" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 font-medium hover:text-indigo-500 transition-colors font-geist" href="#">Bookings</a>
+<a class="text-slate-500 dark:text-slate-400 font-medium hover:text-indigo-500 transition-colors font-geist" href="#">Clients</a>
+<a class="text-slate-500 dark:text-slate-400 font-medium hover:text-indigo-500 transition-colors font-geist" href="#">Settings</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">notifications</span>
+<img alt="Profile" class="w-8 h-8 rounded-full object-cover" data-alt="A professional studio portrait of a user for a profile picture, featuring soft Rembrandt lighting that highlights facial features against a neutral, warm-toned minimalist background. The style is clean, corporate, and modern, maintaining a high-end SaaS aesthetic with a focus on trust and approachability. The color palette is composed of soft beige and deep charcoal accents." src="https://lh3.googleusercontent.com/aida/ADBb0ujOMUqxd-_Cg8D13rQSTH-mEQgu2OXgfGf1DgBC0KEWs_0Km4tZr8xp1XYJ3bhBkaFgm4gqXEz8ytxdxq62kT6ehO9DUq7siVonz7jhCn1xzouaC0ynYj3qdpeKsUdkPojJ5LKcTm7WbUSaIwWw1xZ9UbrNcD6C-ql3j9EGAjv6nBhLmI6FGWNUCRp8isbKKqd6Gs88Yjpy9k1rdcGDsgID28Lkm3bIqGECuHYUrEVpWlp-hy0OuCPKm6-UPL6tbiNL4dkE5r-m"/>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-6 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+<section class="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8">
+<div class="space-y-4">
+<div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-secondary-container text-on-secondary-container shadow-lg shadow-secondary/20">
+<span class="material-symbols-outlined text-5xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<h1 class="text-h1 font-garamond text-on-secondary-container">Appointment Confirmed</h1>
+<p class="text-body-lg font-geist text-on-surface-variant max-w-md">Your strategy session has been successfully scheduled. We've sent a confirmation email with all the details.</p>
+</div>
+<div class="w-full bg-white rounded-xl border border-slate-200 shadow-[0_8px_30px_rgb(79,70,229,0.05)] overflow-hidden">
+<div class="bg-slate-50/50 p-6 border-b border-slate-100 flex justify-between items-center">
+<span class="text-label-caps font-geist text-slate-500">BOOKING REFERENCE: HAP-8829</span>
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">Confirmed</span>
+</div>
+<div class="p-8 space-y-6">
+<div class="grid grid-cols-2 gap-8">
+<div>
+<p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Service</p>
+<p class="text-body-md font-geist font-semibold text-on-surface">Strategy Consultation</p>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Provider</p>
+<div class="flex items-center gap-2">
+<span class="text-body-md font-geist font-semibold text-on-surface">Alex Carter</span>
+<span class="material-symbols-outlined text-emerald-500 text-sm" style="font-variation-settings: 'FILL' 1;">colors_spark</span>
+</div>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Date &amp; Time</p>
+<p class="text-body-md font-geist font-semibold text-on-surface">Dec 17, 9:00 AM</p>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Duration</p>
+<p class="text-body-md font-geist font-semibold text-on-surface">60 min</p>
+</div>
+</div>
+<div class="pt-6 border-t border-slate-100 flex flex-wrap gap-4">
+<button class="flex-1 min-w-[160px] bg-primary text-white py-3 px-6 rounded-full font-button flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-95">
+<span class="material-symbols-outlined text-lg">event</span>
+                            Google Calendar
+                        </button>
+<button class="flex-1 min-w-[160px] border border-slate-200 text-slate-700 py-3 px-6 rounded-full font-button flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95">
+<span class="material-symbols-outlined text-lg">mail</span>
+                            Outlook Calendar
+                        </button>
+</div>
+</div>
+</div>
+<div class="w-full flex items-center justify-between p-4 bg-primary-fixed rounded-xl border border-primary-container/20">
+<div class="flex items-center gap-4">
+<div class="relative w-12 h-12 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90">
+<circle class="text-white" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" stroke-width="4"></circle>
+<circle class="text-primary" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" stroke-dasharray="125.6" stroke-dashoffset="44" stroke-width="4"></circle>
+</svg>
+<span class="absolute text-[10px] font-bold text-on-primary-fixed">65%</span>
+</div>
+<div>
+<p class="text-body-sm font-geist font-semibold text-on-primary-fixed">Complete profile for faster bookings</p>
+<p class="text-[12px] text-on-primary-fixed-variant">Only 2 steps remaining</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary cursor-pointer">arrow_forward</span>
+</div>
+</section>
+<section class="space-y-8">
+<div class="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+<div class="flex items-center gap-4 mb-8">
+<div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+<span class="material-symbols-outlined text-2xl">schedule</span>
+</div>
+<div>
+<h2 class="text-h3 font-garamond text-amber-900">Appointment Reserved</h2>
+<p class="text-body-sm font-geist text-amber-700">Awaiting organiser approval</p>
+</div>
+</div>
+<div class="bg-error-container/30 border border-error-container p-4 rounded-lg flex items-start gap-3 mb-8">
+<span class="material-symbols-outlined text-error text-xl">warning</span>
+<p class="text-body-sm font-geist text-on-error-container font-medium">⚠️ You have another booking at this time (Internal Workshop: Q4 Planning)</p>
+</div>
+<div class="space-y-6">
+<p class="text-label-caps font-geist text-slate-400">SHARE THIS BOOKING</p>
+<div class="flex gap-4">
+<button class="flex-1 bg-slate-100 text-slate-900 py-3 rounded-full font-button flex items-center justify-center gap-2 hover:bg-slate-200 transition-all">
+<span class="material-symbols-outlined text-lg">content_copy</span>
+                            Copy Link
+                        </button>
+<button class="w-14 h-14 border border-slate-200 rounded-full flex items-center justify-center hover:bg-slate-50 transition-all text-secondary">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">chat</span>
+</button>
+</div>
+</div>
+</div>
+<div class="relative rounded-xl overflow-hidden aspect-video shadow-xl">
+<img alt="Consultation Space" class="w-full h-full object-cover" data-alt="A serene, high-end modern office meeting room with floor-to-ceiling windows overlooking a soft-focus urban skyline at dawn. The interior features minimalist furniture, including a white marble table and ergonomic leather chairs. The lighting is ethereal and soft, reflecting a sense of elite professionalism and calm intelligence. The scene is dominated by a color palette of whites, soft greys, and deep indigo shadows." src="https://lh3.googleusercontent.com/aida/ADBb0ugAlcOxgCNwS71v6E0TI1YokQernWs5ElOgie2wxMrSVLq2YDr4wYhmTuYgOtywZHX_DR69RDM__qI6nQPQrOP71kOAfngzvB_Za1vtRNu6vQMsAb-SlnxcdeCvTCx_4r9y_w-XwhMjIBXISA9_Ng-6Dwanh5Jy6ahup0fbjOk1kJLE7aap-41i7F1hFGxIz4Ub7wMPPOV3EZ3wAylGFbN2E81rBPKsuRa4lNepe3btU_4hky_W3fvxWEoqNB-AtWSUyZJsby0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-8">
+<div class="text-white">
+<p class="font-garamond text-2xl mb-1 italic">"The future belongs to those who prepare for it today."</p>
+<p class="font-geist text-sm opacity-80 uppercase tracking-widest">— STRATEGY TEAM</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center h-16 px-4 md:hidden bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shadow-[0_-4px_6px_-1px_rgba(79,70,229,0.05)] z-50">
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 font-medium font-geist text-[10px] active:scale-95 duration-150">
+<span class="material-symbols-outlined">home</span>
+<span>Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium font-geist text-[10px] active:scale-95 duration-150">
+<span class="material-symbols-outlined">calendar_today</span>
+<span>Schedule</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 font-medium font-geist text-[10px] active:scale-95 duration-150">
+<span class="material-symbols-outlined">group</span>
+<span>Contacts</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 font-medium font-geist text-[10px] active:scale-95 duration-150">
+<span class="material-symbols-outlined">person</span>
+<span>Account</span>
+</div>
+</nav>
+</body></html>

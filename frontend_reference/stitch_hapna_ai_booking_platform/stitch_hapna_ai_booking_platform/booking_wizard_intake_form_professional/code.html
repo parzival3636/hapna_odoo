@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hapna - Intake Form</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed": "#e3dfff",
+                    "primary-container": "#4f46e5",
+                    "tertiary-container": "#a44100",
+                    "on-surface-variant": "#464555",
+                    "primary-fixed": "#e2dfff",
+                    "secondary": "#5b598c",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#c7c3fe",
+                    "primary": "#3525cd",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-error-container": "#93000a",
+                    "background": "#f8f9fa",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#514f81",
+                    "secondary-fixed-dim": "#c4c1fb",
+                    "tertiary-fixed-dim": "#ffb695",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "inverse-surface": "#2e3132",
+                    "surface-container-high": "#e7e8e9",
+                    "tertiary": "#7e3000",
+                    "outline": "#777587",
+                    "outline-variant": "#c7c4d8",
+                    "on-secondary-fixed-variant": "#444173",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "surface-tint": "#4d44e3",
+                    "surface-container-low": "#f3f4f5",
+                    "on-surface": "#191c1d",
+                    "surface-variant": "#e1e3e4",
+                    "on-primary-fixed": "#0f0069",
+                    "surface-container": "#edeeef",
+                    "tertiary-fixed": "#ffdbcc",
+                    "inverse-primary": "#c3c0ff",
+                    "on-primary-container": "#dad7ff",
+                    "surface-bright": "#f8f9fa",
+                    "on-secondary-fixed": "#181445",
+                    "on-background": "#191c1d",
+                    "on-primary": "#ffffff",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface": "#f8f9fa",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-fixed": "#351000",
+                    "on-tertiary-fixed-variant": "#7b2f00",
+                    "surface-dim": "#d9dadb",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-container": "#ffd2be"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack-md": "32px",
+                    "stack-sm": "16px",
+                    "margin-page": "64px",
+                    "stack-lg": "64px",
+                    "gutter": "24px",
+                    "container-max": "1280px",
+                    "unit": "8px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Libre Baskerville"],
+                    "body-md": ["Libre Baskerville"],
+                    "display-lg": ["Playfair Display"],
+                    "headline-h2": ["Playfair Display"],
+                    "headline-h1": ["Playfair Display"],
+                    "subheading": ["Libre Baskerville"],
+                    "label-sm": ["Libre Baskerville"]
+            },
+            "fontSize": {
+                    "body-lg": ["18px", {"lineHeight": "1.7", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "headline-h2": ["30px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "headline-h1": ["36px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "subheading": ["20px", {"lineHeight": "1.5", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #f8f9ff;
+        }
+        .form-focus-ring:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 1px #4f46e5;
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-background min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 w-full bg-white/80 backdrop-blur-md border-b border-gray-200">
+<div class="text-2xl font-bold font-serif text-indigo-600">Hapna</div>
+<div class="hidden md:flex gap-8">
+<a class="text-slate-600 font-medium hover:text-indigo-500 transition-colors duration-200" href="#">Services</a>
+<a class="text-indigo-600 border-b-2 border-indigo-600 pb-1 font-bold" href="#">My Bookings</a>
+<a class="text-slate-600 font-medium hover:text-indigo-500 transition-colors duration-200" href="#">Profile</a>
+</div>
+<div class="w-10 h-10 overflow-hidden rounded-full border border-outline-variant scale-95 active:scale-100 transition-transform cursor-pointer">
+<img alt="User profile" data-alt="A professional headshot of a person with a warm expression, set against a clean, neutral architectural background. The lighting is soft and natural, emphasizing a high-end, professional aesthetic that aligns with a premium medical or consulting service. The color palette is dominated by soft whites and subtle skin tones, reflecting a clean and modern light-mode interface design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxvIe4BelSaJi-V1HfQ1UkQ3xfiHa66fwmVj_iIHemx7_bPUwpL5DVxvNf8WzUtrRgqWH3gJlsFnjd7O8yuEy7M496C5lgfbwCHBlfNo83T4Qw4ZaLpNvJRwS-8JL4XZuWRGV8nM9jnUWeYEwSS84i7mP2ynlKQdPkCZv5kkhfjkFlptOSsHazebyGfkmD4-dax3-SSZBo-M-uxrCFB2lgtM1PAbNc_Xm3ro7xKQssQTpcG39EIm0LQMGMQv2IJeeksP4X5BFWqw"/>
+</div>
+</nav>
+<main class="flex-grow max-w-container-max mx-auto w-full px-6 md:px-12 py-stack-lg">
+<!-- Progress Bar -->
+<div class="mb-stack-lg max-w-2xl mx-auto md:mx-0">
+<div class="flex items-center justify-between mb-4">
+<span class="text-label-sm font-label-sm text-indigo-600">STEP 04: DETAILS</span>
+<span class="text-label-sm font-label-sm text-slate-400">75% COMPLETE</span>
+</div>
+<div class="w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-indigo-600 w-3/4"></div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+<!-- Main Content Area -->
+<section class="lg:col-span-7 space-y-stack-md">
+<header>
+<h1 class="font-headline-h1 text-headline-h1 text-slate-900 mb-2">A few details</h1>
+<p class="font-body-lg text-body-lg text-slate-600">Please provide the necessary information for your upcoming visit.</p>
+</header>
+<form class="space-y-6">
+<!-- Full Name -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-slate-500" for="name">Full Name</label>
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm bg-indigo-50 text-[10px] font-bold text-indigo-600 uppercase border border-indigo-100">From your profile</span>
+</div>
+<input class="w-full px-4 py-3 bg-white border border-gray-200 font-body-md text-slate-800 form-focus-ring transition-all" id="name" name="name" placeholder="Enter your full name" type="text" value="Julian Alexander"/>
+</div>
+<!-- Email Address -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-slate-500" for="email">Email Address</label>
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm bg-indigo-50 text-[10px] font-bold text-indigo-600 uppercase border border-indigo-100">From your profile</span>
+</div>
+<input class="w-full px-4 py-3 bg-white border border-gray-200 font-body-md text-slate-800 form-focus-ring transition-all" id="email" name="email" placeholder="Enter your email address" type="email" value="j.alexander@email.com"/>
+</div>
+<!-- Reason for Visit -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-slate-500" for="reason">Reason for visit</label>
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm bg-green-50 text-[10px] font-bold text-green-600 uppercase border border-green-100">From your last visit</span>
+</div>
+<textarea class="w-full px-4 py-3 bg-white border border-gray-200 font-body-md text-slate-800 form-focus-ring transition-all" id="reason" name="reason" placeholder="Briefly describe the purpose of your consultation..." rows="4"></textarea>
+</div>
+<!-- Navigation Actions -->
+<div class="pt-stack-md flex items-center justify-between border-t border-gray-200 mt-stack-md">
+<button class="px-6 py-3 font-label-sm text-label-sm uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-2" type="button">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+                            Back
+                        </button>
+<button class="px-10 py-3 bg-primary-container text-white font-label-sm text-label-sm uppercase tracking-widest shadow-sm hover:bg-primary transition-all active:scale-95" type="submit">
+                            Continue
+                        </button>
+</div>
+</form>
+</section>
+<!-- Sidebar / Summary Card -->
+<aside class="lg:col-span-5 space-y-gutter">
+<div class="bg-white border border-gray-200 p-8 shadow-sm">
+<h2 class="font-subheading text-subheading text-slate-900 mb-6 border-b border-gray-100 pb-4">Booking Summary</h2>
+<div class="space-y-6">
+<div class="flex items-start gap-4">
+<div class="w-16 h-16 bg-slate-50 flex items-center justify-center rounded-sm border border-gray-100 shrink-0">
+<span class="material-symbols-outlined text-indigo-600 text-3xl">medical_services</span>
+</div>
+<div>
+<h3 class="font-body-lg font-bold text-slate-900 leading-tight">General Consultation</h3>
+<p class="text-label-sm font-label-sm text-indigo-600 mt-1">30 MINUTE SESSION</p>
+</div>
+</div>
+<div class="flex items-center gap-4 py-6 border-y border-gray-50">
+<img class="w-12 h-12 rounded-full object-cover grayscale-[30%] border border-gray-200" data-alt="A high-resolution, professional portrait of a female doctor named Dr. Sarah Smith, wearing a modern white laboratory coat in a brightly lit, minimalist clinical setting. The background is softly blurred, showing hints of high-end medical equipment and clean glass walls. The lighting is crisp and cool, maintaining a premium editorial feel with a color palette of pure whites and clinical blues. The mood is trustworthy and serene, perfectly suited for an elite healthcare booking platform." src="https://lh3.googleusercontent.com/aida/ADBb0ugAlcOxgCNwS71v6E0TI1YokQernWs5ElOgie2wxMrSVLq2YDr4wYhmTuYgOtywZHX_DR69RDM__qI6nQPQrOP71kOAfngzvB_Za1vtRNu6vQMsAb-SlnxcdeCvTCx_4r9y_w-XwhMjIBXISA9_Ng-6Dwanh5Jy6ahup0fbjOk1kJLE7aap-41i7F1hFGxIz4Ub7wMPPOV3EZ3wAylGFbN2E81rBPKsuRa4lNepe3btU_4hky_W3fvxWEoqNB-AtWSUyZJsby0"/>
+<div>
+<p class="font-label-sm text-label-sm text-slate-500 uppercase">Provider</p>
+<p class="font-body-md font-bold text-slate-900">Dr. Sarah Smith</p>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-center text-body-md">
+<span class="text-slate-500">Date</span>
+<span class="font-bold text-slate-900">October 24, 2024</span>
+</div>
+<div class="flex justify-between items-center text-body-md">
+<span class="text-slate-500">Time</span>
+<span class="font-bold text-slate-900">10:30 AM EST</span>
+</div>
+<div class="flex justify-between items-center text-body-md pt-4 border-t border-gray-100">
+<span class="text-slate-900 font-bold uppercase text-[10px] tracking-widest">Total Fee</span>
+<span class="font-headline-h2 text-indigo-600">$125.00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Visual Element -->
+<div class="relative h-48 bg-indigo-50 border border-indigo-100 flex flex-col items-center justify-center text-center p-8 overflow-hidden">
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-indigo-100/50 rounded-full blur-2xl"></div>
+<span class="material-symbols-outlined text-indigo-600 text-4xl mb-3 opacity-60">verified_user</span>
+<p class="font-body-md text-slate-700 italic">"Your data is protected by industry-leading encryption and HIPAA compliance standards."</p>
+</div>
+</aside>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-gray-50 border-t border-gray-200 mt-stack-lg">
+<div class="max-w-7xl mx-auto px-6 md:px-12 py-16 grid grid-cols-2 md:grid-cols-4 gap-12">
+<div class="col-span-2 md:col-span-1">
+<div class="text-xl font-bold font-serif text-indigo-600 mb-6">Hapna</div>
+<p class="font-serif text-sm text-slate-600 max-w-[200px]">Redefining the booking experience for professionals and clients alike.</p>
+</div>
+<div>
+<h4 class="font-label-sm text-label-sm uppercase tracking-widest text-slate-900 mb-6">Product</h4>
+<ul class="space-y-4">
+<li><a class="font-serif text-sm text-slate-500 hover:text-indigo-600 hover:underline underline-offset-8 transition-all" href="#">Services</a></li>
+<li><a class="font-serif text-sm text-slate-500 hover:text-indigo-600 hover:underline underline-offset-8 transition-all" href="#">Channels</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-sm text-label-sm uppercase tracking-widest text-slate-900 mb-6">Company</h4>
+<ul class="space-y-4">
+<li><a class="font-serif text-sm text-slate-500 hover:text-indigo-600 hover:underline underline-offset-8 transition-all" href="#">About</a></li>
+<li><a class="font-serif text-sm text-slate-500 hover:text-indigo-600 hover:underline underline-offset-8 transition-all" href="#">Privacy</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-sm text-label-sm uppercase tracking-widest text-slate-900 mb-6">Social</h4>
+<ul class="space-y-4">
+<li><a class="font-serif text-sm text-slate-500 hover:text-indigo-600 hover:underline underline-offset-8 transition-all" href="#">Instagram</a></li>
+<li><a class="font-serif text-sm text-slate-500 hover:text-indigo-600 hover:underline underline-offset-8 transition-all" href="#">Twitter</a></li>
+</ul>
+</div>
+</div>
+<div class="max-w-7xl mx-auto px-6 md:px-12 py-8 border-t border-gray-200">
+<p class="font-serif text-sm text-slate-400 text-center md:text-left">© 2024 Hapna Booking. All rights reserved.</p>
+</div>
+</footer>
+</body></html>

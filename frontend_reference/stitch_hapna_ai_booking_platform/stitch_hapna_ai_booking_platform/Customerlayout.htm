@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-background": "#0b1c30",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#dad7ff",
+                        "error-container": "#ffdad6",
+                        "surface": "#f8f9ff",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-surface": "#0b1c30",
+                        "background": "#f8f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#4f46e5",
+                        "secondary-container": "#6cf8bb",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "tertiary-fixed": "#e1e0ff",
+                        "inverse-primary": "#c3c0ff",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-tertiary-fixed": "#07006c",
+                        "surface-container-low": "#eff4ff",
+                        "inverse-surface": "#213145",
+                        "on-surface-variant": "#464555",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed-variant": "#2f2ebe",
+                        "inverse-on-surface": "#eaf1ff",
+                        "secondary": "#006c49",
+                        "primary-fixed": "#e2dfff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#0f0069",
+                        "surface-bright": "#f8f9ff",
+                        "primary": "#3525cd",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c7c4d8",
+                        "tertiary-container": "#4b4dd8",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-high": "#dce9ff",
+                        "on-secondary-container": "#00714d",
+                        "surface-tint": "#4d44e3",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-secondary-fixed": "#002113",
+                        "surface-variant": "#d3e4fe",
+                        "outline": "#777587",
+                        "on-secondary-fixed-variant": "#005236",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#c0c1ff",
+                        "tertiary": "#3130c0",
+                        "on-tertiary-container": "#d9d8ff",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "3rem",
+                        "unit": "4px",
+                        "sm": "1rem",
+                        "md": "1.5rem",
+                        "max-width": "1280px",
+                        "xs": "0.5rem",
+                        "margin": "32px",
+                        "lg": "2rem",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "h3": ["Inter"],
+                        "h2": ["Inter"],
+                        "body-md": ["Inter"],
+                        "button": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "h1": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-caps": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "h3": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "h2": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "button": ["15px", {"lineHeight": "1.0", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "h1": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm font-inter text-sm antialiased">
+<nav class="max-w-[1200px] mx-auto px-6 flex justify-between items-center h-16">
+<!-- Brand Logo -->
+<div class="flex items-center gap-2">
+<span class="text-2xl font-bold tracking-tight text-indigo-600">Hapna</span>
+</div>
+<!-- Navigation Links -->
+<div class="hidden md:flex items-center gap-8">
+<a class="text-indigo-600 font-semibold border-b-2 border-indigo-600 pb-1 hover:text-indigo-500 transition-all duration-200 active:scale-95" href="#">Services</a>
+<a class="text-slate-600 font-medium hover:text-indigo-500 transition-all duration-200 active:scale-95" href="#">My Bookings</a>
+<a class="text-slate-600 font-medium hover:text-indigo-500 transition-all duration-200 active:scale-95" href="#">Profile</a>
+</div>
+<!-- Right Actions: Avatar & Dropdown -->
+<div class="flex items-center gap-4 relative group">
+<button class="flex items-center gap-2 focus:outline-none">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold shadow-md active:scale-95 transition-transform duration-150">
+                        E
+                    </div>
+<span class="material-symbols-outlined text-slate-400">expand_more</span>
+</button>
+<!-- Dropdown Menu -->
+<div class="absolute right-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+<div class="bg-white border border-slate-200 rounded-xl shadow-xl w-48 py-2 overflow-hidden">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">person</span>
+<span class="font-body-sm font-medium">My Profile</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">calendar_today</span>
+<span class="font-body-sm font-medium">My Bookings</span>
+</a>
+<div class="h-[1px] bg-slate-100 my-1"></div>
+<a class="flex items-center gap-3 px-4 py-2 text-error hover:bg-error-container/20 transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">logout</span>
+<span class="font-body-sm font-medium">Sign Out</span>
+</a>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<!-- Main Content Area -->
+<main class="flex-grow">
+<div class="max-w-[1200px] mx-auto px-6 py-12">
+<!-- Canvas Component -->
+<section class="bg-white rounded-xl border border-slate-200 shadow-[0_8px_30px_rgb(79,70,229,0.05)] overflow-hidden min-h-[600px] flex flex-col">
+<div class="bg-[#F9FAFB] px-8 py-6 border-b border-slate-100 flex justify-between items-center">
+<h1 class="font-h2 text-h3 text-on-surface">Services Marketplace</h1>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-secondary-container/20 text-on-secondary-container rounded-full text-label-caps flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                            AI RELEVANCE ON
+                        </span>
+</div>
+</div>
+<!-- Placeholder Pattern for Content -->
+<div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Example Bento Style Content -->
+<div class="md:col-span-2 space-y-8">
+<div class="relative rounded-xl overflow-hidden h-[300px] group">
+<img alt="" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="A high-end, modern corporate boardroom with floor-to-ceiling windows, sleek furniture, and a bright, airy atmosphere reflecting the Hapna Lumina aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6SaB3BP00IGM9y4g9Fkt5_sWFsaSvhJOvUbj9pgzw_WzYjS8k1tPlZeSBqzmqQdz8N-o6m7drpVtKJNqnvj3MmUu-g1mw232UiBQJFWFHOJrE12Ou4buBbEOATcvzQBhDzcYyVI3kLOZHjBjNH7uqf_QesHU4zqD0I-bKeShi4JhYCr8uuNFz9U_gaAg0yG4B5R5LKXigYECq7Rr3MSUgTGgNAvqZSPwKqis4WE6QqbpowghTJjosR2O0FY9-SVAbM6NQJK_27g"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex flex-col justify-end p-8">
+<h3 class="text-white font-h3 text-h3 mb-2">Exclusive Business Consultations</h3>
+<p class="text-white/90 font-body-md">Connect with top-tier enterprise mentors powered by omnichannel intelligence.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div class="p-6 border border-slate-100 rounded-xl hover:shadow-lg transition-shadow cursor-pointer group">
+<div class="w-12 h-12 bg-primary-fixed rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-white">strategy</span>
+</div>
+<h4 class="font-h3 text-body-lg mb-2">Strategy Audit</h4>
+<p class="text-on-surface-variant font-body-sm">A deep dive into your service operations with AI-driven insights.</p>
+</div>
+<div class="p-6 border border-slate-100 rounded-xl hover:shadow-lg transition-shadow cursor-pointer group">
+<div class="w-12 h-12 bg-secondary-container/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-secondary-container transition-colors">
+<span class="material-symbols-outlined text-secondary">trending_up</span>
+</div>
+<h4 class="font-h3 text-body-lg mb-2">Growth Mapping</h4>
+<p class="text-on-surface-variant font-body-sm">Identify scalable pathways for your enterprise recruitment engine.</p>
+</div>
+</div>
+</div>
+<div class="space-y-6">
+<div class="p-6 bg-surface-container rounded-xl">
+<h4 class="font-h3 text-body-md mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">notifications_active</span>
+                                Upcoming Sessions
+                            </h4>
+<div class="space-y-4">
+<div class="flex items-center gap-4 bg-white p-3 rounded-lg border border-slate-100">
+<img alt="" class="w-10 h-10 rounded-full" data-alt="Professional portrait of a business consultant, Sarah Jenkins, in a modern office setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDg_oXaxMEqrdpI8IufBXxZbIMTqwQRkJEyjFLT41Comev39FS1W5hh-cPXrqaE4c8Soh9ZAIafJw7FRrLOtwzehD3HekYbXIXJg_t0nn52sRjd3K6mULcvvzUJSvtkml8AOyTt1ITC0fG2ZgrwS9EsudiVAHKKlVEg3Jucr5x1qubUFObSSn-fS3BF4aolq8hGEkykUsPbFRpXkLnmqaQFn-a1FPwmSPI38Jf3K3NZ9GbEp3lCmThidNLsazy76D1yFZceU_-dVA"/>
+<div>
+<p class="font-body-sm font-semibold">Sarah Jenkins</p>
+<p class="text-xs text-slate-500">Today, 2:00 PM</p>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Assistant Teaser in Sidebar -->
+<div class="p-6 border-2 border-dashed border-primary-fixed rounded-xl bg-primary-fixed/5">
+<p class="text-primary font-button mb-3">Ask Hapna AI</p>
+<p class="text-on-surface-variant font-body-sm italic mb-4">"Find me a strategy session for next Tuesday afternoon."</p>
+<button class="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 text-white py-3 rounded-full font-button shadow-md active:scale-95 transition-all">
+                                Chat Now
+                            </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Global ChatWidget (AI Assistant) -->
+<div class="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4">
+<!-- AI Chat Bubble Tooltip (Optional visual flare) -->
+<div class="bg-white px-4 py-2 rounded-2xl shadow-xl border border-slate-100 mb-2 transform -translate-y-2 opacity-0 group-hover:opacity-100 transition-all">
+<p class="font-body-sm text-on-surface-variant">How can I help you today?</p>
+</div>
+<!-- Main FAB -->
+<button class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-[0_10px_40px_rgba(79,70,229,0.3)] hover:scale-110 active:scale-90 transition-all group overflow-hidden relative">
+<!-- Sparkle Icon for AI Identification -->
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<!-- Subtle gradient shine effect -->
+<div class="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</button>
+</div>
+<!-- Footer -->
+<footer class="w-full py-8 bg-white border-t border-slate-100 font-inter text-xs tracking-wide uppercase">
+<div class="max-w-[1200px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="flex items-center gap-6">
+<span class="font-bold text-slate-900">© 2026 Hapna</span>
+<span class="text-slate-300">|</span>
+<span class="text-slate-400 normal-case italic">Effortless Precision.</span>
+</div>
+<div class="flex gap-8 items-center">
+<a class="text-slate-400 hover:text-slate-900 transition-colors cursor-pointer" href="#">Help</a>
+<a class="text-slate-400 hover:text-slate-900 transition-colors cursor-pointer" href="#">Privacy</a>
+<a class="text-slate-400 hover:text-slate-900 transition-colors cursor-pointer" href="#">Terms</a>
+<a class="text-slate-400 hover:text-slate-900 transition-colors cursor-pointer" href="#">Support</a>
+</div>
+</div>
+</footer>
+</body></html>

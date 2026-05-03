@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Booking, BookingAnswer, ServiceQuestion
+from .models import Booking, BookingAnswer, ServiceQuestion, Payment
 
 
 class BookingAnswerInputSerializer(serializers.Serializer):
@@ -47,12 +47,16 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     answers = serializers.SerializerMethodField()
     service_title = serializers.SerializerMethodField()
 
+    payment_amount = serializers.SerializerMethodField()
+    paid_at = serializers.SerializerMethodField()
+
     class Meta:
         model = Booking
         fields = [
             'id', 'service_id', 'service_title', 'resource_id',
             'slot_date', 'slot_start', 'slot_end',
             'status', 'capacity_booked', 'payment_status',
+            'payment_amount', 'paid_at',
             'booking_channel', 'notes', 'confirmation_token',
             'created_at', 'confirmed_at', 'cancelled_at',
             'answers',
@@ -69,15 +73,38 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         except Service.DoesNotExist:
             return None
 
+    def get_payment_amount(self, obj):
+        if obj.payment_status == 'paid':
+            payment = Payment.objects.filter(booking_id=obj.id, payment_status='paid').first()
+            if payment:
+                return str(payment.amount)
+        return None
+
+    def get_paid_at(self, obj):
+        if obj.payment_status == 'paid':
+            payment = Payment.objects.filter(booking_id=obj.id, payment_status='paid').first()
+            if payment:
+                return payment.created_at.isoformat()
+        return None
+
 
 class BookingListSerializer(serializers.ModelSerializer):
     """Compact list — for conflict detection + my bookings date check."""
+    service_title = serializers.SerializerMethodField()
+
     class Meta:
         model = Booking
         fields = [
-            'id', 'service_id', 'slot_date', 'slot_start', 'slot_end',
+            'id', 'service_id', 'service_title', 'slot_date', 'slot_start', 'slot_end',
             'status', 'payment_status', 'confirmation_token', 'created_at',
         ]
+
+    def get_service_title(self, obj):
+        from .models import Service
+        try:
+            return Service.objects.get(id=obj.service_id).title
+        except Service.DoesNotExist:
+            return None
 
 
 class BookingStatusSerializer(serializers.ModelSerializer):

@@ -85,32 +85,34 @@ export default function StepDatePicker({
   }
 
   return (
-    <div className="glass-card p-6">
-      <h2 className="text-xl font-bold mb-6">Select a Date</h2>
+    <div className="p-2">
+      <h2 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3">
+        Select a Date
+      </h2>
 
       {/* Month nav */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-8 bg-slate-50 p-3 rounded-2xl border border-slate-100">
         <button
           onClick={prevMonth}
-          className="w-9 h-9 rounded-lg bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all"
+          className="w-10 h-10 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-all shadow-sm active:scale-95"
         >
-          ‹
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <span className="font-semibold">{monthName}</span>
+        <span className="font-black text-slate-900 uppercase tracking-widest text-sm">{monthName}</span>
         <button
           onClick={nextMonth}
-          className="w-9 h-9 rounded-lg bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all"
+          className="w-10 h-10 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-all shadow-sm active:scale-95"
         >
-          ›
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
 
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 gap-2 mb-4">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
           <div
             key={d}
-            className="text-center text-xs text-[#64748b] py-1 font-medium"
+            className="text-center text-[10px] text-slate-400 py-1 font-black uppercase tracking-widest"
           >
             {d}
           </div>
@@ -118,7 +120,7 @@ export default function StepDatePicker({
       </div>
 
       {/* Days */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-2">
         {Array.from({ length: firstDay }).map((_, i) => (
           <div key={`e-${i}`} />
         ))}
@@ -132,32 +134,35 @@ export default function StepDatePicker({
               key={day}
               disabled={past}
               onClick={() => onSelect(ds)}
-              className={`aspect-square rounded-lg text-sm font-medium flex items-center justify-center relative transition-all ${
+              className={`aspect-square rounded-xl text-sm font-black flex items-center justify-center relative transition-all border-2 ${
                 past
-                  ? "text-[#334155] cursor-not-allowed"
+                  ? "text-slate-200 border-transparent cursor-not-allowed"
                   : selected
-                  ? "bg-[#7c3aed] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]"
+                  ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100"
                   : avail
-                  ? "text-white hover:bg-[rgba(124,58,237,0.2)] cursor-pointer"
-                  : "text-[#94a3b8] hover:bg-[rgba(255,255,255,0.05)] cursor-pointer"
+                  ? "bg-white border-slate-100 text-slate-900 hover:border-indigo-500 hover:text-indigo-600 cursor-pointer shadow-sm"
+                  : "bg-white border-transparent text-slate-400 hover:bg-slate-50 cursor-pointer"
               }`}
             >
               {day}
               {avail && !selected && (
-                <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
+                <span className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
               )}
             </button>
           );
         })}
       </div>
 
-      {availableDates.length > 0 && (
-        <div className="mt-4 flex items-center gap-3 text-xs text-[#64748b]">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#4ade80]" /> Available
-          </span>
+      <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-6">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Available</span>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Selected</span>
+        </div>
+      </div>
     </div>
   );
 }

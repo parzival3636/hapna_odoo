@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { customerApi } from "@/lib/customer-api";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface CancelDialogProps {
   isOpen: boolean;
@@ -13,34 +11,40 @@ export function CancelDialog({ isOpen, onClose, onConfirm, isCancelling }: Cance
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#1e1e2d] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <h3 className="text-xl font-bold text-white mb-2">Cancel Appointment</h3>
-        <p className="text-[#94a3b8] text-sm mb-6">
-          Are you sure you want to cancel this booking? This action cannot be undone.
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-10 lg:p-12 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-8 shadow-sm">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        
+        <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-3">Critical Intervention</p>
+        <h3 className="text-2xl font-heading font-black text-slate-900 mb-4 tracking-tight">Abort Appointment?</h3>
+        <p className="text-slate-500 font-medium text-sm mb-10 leading-relaxed">
+          You are about to permanently disconnect this session from the registry. This operation cannot be reversed.
         </p>
         
-        <div className="flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            disabled={isCancelling}
-            className="px-4 py-2 text-sm font-medium text-[#94a3b8] hover:text-white transition-colors disabled:opacity-50"
-          >
-            Never mind
-          </button>
+        <div className="flex flex-col gap-3">
           <button
             onClick={onConfirm}
             disabled={isCancelling}
-            className="px-4 py-2 text-sm font-bold text-white bg-[rgba(239,68,68,0.2)] border border-[rgba(239,68,68,0.3)] rounded-lg hover:bg-[rgba(239,68,68,0.3)] transition-all flex items-center gap-2"
+            className="w-full py-4 rounded-xl font-black text-[10px] uppercase tracking-widest text-white bg-red-600 hover:bg-red-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-red-100"
           >
             {isCancelling ? (
               <>
-                <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                Cancelling...
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Aborting...
               </>
             ) : (
-              "Yes, Cancel It"
+              "Confirm Abort"
             )}
+          </button>
+          
+          <button
+            onClick={onClose}
+            disabled={isCancelling}
+            className="w-full py-4 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors disabled:opacity-50"
+          >
+            Maintain Activity
           </button>
         </div>
       </div>

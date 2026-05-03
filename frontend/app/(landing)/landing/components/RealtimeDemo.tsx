@@ -83,9 +83,9 @@ export function RealtimeDemo() {
                     disabled={isBooked}
                     className={`py-3 rounded-xl font-medium text-sm transition-all ${
                       isBooked
-                        ? "bg-slate-200 text-slate-400 border border-slate-200 cursor-not-allowed"
+                        ? "bg-red-50 text-red-500 border border-red-200 cursor-not-allowed opacity-80"
                         : isSelected
-                        ? "bg-[#4F46E5] text-white border border-[#4F46E5] shadow-lg shadow-indigo-500/20"
+                        ? "bg-[#4F46E5]/10 text-[#4F46E5] border border-[#4F46E5] shadow-sm"
                         : "bg-white border border-slate-200 hover:border-[#4F46E5] hover:text-[#4F46E5]"
                     }`}
                   >

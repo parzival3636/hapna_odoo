@@ -39,58 +39,58 @@ export default function StepPayment({ service, state, onBack }: Props) {
   if (fee <= 0) return null;
 
   return (
-    <div className="glass-card p-6 md:p-10 text-center">
-      <div className="w-16 h-16 bg-[rgba(124,58,237,0.1)] rounded-full flex items-center justify-center mx-auto mb-6">
-        <svg className="w-8 h-8 text-[#7c3aed]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    <div className="p-4 md:p-10 text-center">
+      <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+        <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
       </div>
 
-      <h2 className="text-2xl font-bold mb-2">Secure Payment</h2>
-      <p className="text-[#94a3b8] mb-8">You will be redirected to Stripe's secure checkout page to complete your payment.</p>
+      <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Secure Payment</h2>
+      <p className="text-slate-500 font-medium mb-10 max-w-sm mx-auto">Pay securely with Stripe. You'll be redirected to complete your transaction.</p>
 
-      <div className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 mb-8 max-w-sm mx-auto">
-        <p className="text-[#64748b] text-xs uppercase tracking-widest font-bold mb-2">Amount to Pay</p>
-        <p className="text-4xl font-bold text-white">₹{fee.toFixed(2)}</p>
+      <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-10 mb-10 max-w-xs mx-auto shadow-sm">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Total Amount</p>
+        <p className="text-5xl font-black text-slate-900">₹{fee.toFixed(2)}</p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+        <div className="mb-8 p-5 rounded-2xl bg-red-50 border border-red-100 text-red-600 font-bold text-sm animate-shake">
           {error}
         </div>
       )}
 
-      <div className="space-y-4 max-w-sm mx-auto">
+      <div className="space-y-4 max-w-xs mx-auto">
         <button
           onClick={handleCheckout}
           disabled={loading}
-          className="w-full py-4 rounded-xl font-bold text-lg bg-[#7c3aed] text-white hover:bg-[#6d28d9] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(124,58,237,0.3)] disabled:opacity-50"
+          className="w-full py-5 rounded-[2rem] font-black text-xl bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 disabled:shadow-none"
         >
           {loading ? (
-            <>
-              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Redirecting...
-            </>
+            <span className="flex items-center justify-center gap-3">
+              <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+              Processing...
+            </span>
           ) : (
-            "Pay with Stripe"
+            "Pay Securely"
           )}
         </button>
         
         <button
           onClick={onBack}
           disabled={loading}
-          className="w-full py-3 rounded-xl font-medium text-[#94a3b8] hover:text-white hover:bg-[rgba(255,255,255,0.05)] transition-all"
+          className="w-full py-4 rounded-2xl font-black text-xs text-slate-400 hover:text-slate-900 hover:bg-slate-50 uppercase tracking-widest transition-all"
         >
-          Go Back
+          ← Go Back
         </button>
       </div>
 
-      <div className="mt-10 pt-6 border-t border-[rgba(255,255,255,0.05)] flex items-center justify-center gap-6 opacity-40">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" className="h-6 invert" />
+      <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col items-center gap-4">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" className="h-6 opacity-60" />
         <div className="flex gap-2">
-          <div className="w-8 h-5 bg-white/20 rounded-sm" />
-          <div className="w-8 h-5 bg-white/20 rounded-sm" />
-          <div className="w-8 h-5 bg-white/20 rounded-sm" />
+          <div className="w-8 h-5 bg-slate-100 rounded-md border border-slate-200" />
+          <div className="w-8 h-5 bg-slate-100 rounded-md border border-slate-200" />
+          <div className="w-8 h-5 bg-slate-100 rounded-md border border-slate-200" />
         </div>
       </div>
     </div>

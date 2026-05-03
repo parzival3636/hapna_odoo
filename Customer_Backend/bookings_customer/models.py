@@ -142,3 +142,15 @@ class BookingAnswer(models.Model):
 
     def __str__(self):
         return f"Answer {self.id} for booking {self.booking_id}"
+
+class Payment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    booking_id = models.UUIDField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.TextField(default='INR')
+    payment_status = models.TextField(default='pending_payment')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'bookings_payment'
