@@ -89,6 +89,7 @@ SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
 SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LANGUAGE_CODE = 'en-us'

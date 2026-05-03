@@ -59,7 +59,7 @@ class ServiceDetailView(APIView):
 
     def get(self, request, pk):
         try:
-            service = Service.objects.get(id=pk, is_published=True)
+            service = Service.objects.get(id=pk)
         except Service.DoesNotExist:
             return Response(
                 {'error': True, 'code': 'NOT_FOUND', 'message': 'Service not found'},
@@ -78,7 +78,7 @@ class ServiceResourcesView(APIView):
 
     def get(self, request, pk):
         try:
-            service = Service.objects.get(id=pk, is_published=True)
+            service = Service.objects.get(id=pk)
         except Service.DoesNotExist:
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
@@ -120,7 +120,7 @@ class ServiceAvailabilityView(APIView):
             )
 
         try:
-            service = Service.objects.get(id=pk, is_published=True)
+            service = Service.objects.get(id=pk)
         except Service.DoesNotExist:
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 
@@ -148,7 +148,7 @@ class ServiceNextAvailableView(APIView):
 
     def get(self, request, pk):
         try:
-            service = Service.objects.get(id=pk, is_published=True)
+            service = Service.objects.get(id=pk)
         except Service.DoesNotExist:
             return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
 

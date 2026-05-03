@@ -12,51 +12,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status as http_status
 
+import stripe
+from django.conf import settings
 from .models import Payment, Booking, Service
-from .serializers import PaymentInitiateSerializer, PaymentStatusSerializer
 
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
-def _luhn_check(card_number: str) -> bool:
-    """Standard Luhn algorithm for card number validation."""
-    digits = [int(d) for d in card_number.replace(' ', '') if d.isdigit()]
-    if len(digits) < 13:
-        return False
-    checksum = 0
-    for i, digit in enumerate(reversed(digits)):
-        if i % 2 == 1:
-            digit *= 2
-            if digit > 9:
-                digit -= 9
-        checksum += digit
-    return checksum % 10 == 0
-
-
-def _validate_expiry(expiry: str) -> bool:
-    """Validates MM/YY expiry — card must not be expired."""
-    try:
-        month, year = expiry.strip().split('/')
-        month, year = int(month), int(year) + 2000
-        now = timezone.now()
-        return (year > now.year) or (year == now.year and month >= now.month)
-    except Exception:
-        return False
-
-
-class PaymentInitiateView(APIView):
+class StripeCheckoutView(APIView):
     """
-    POST /api/payments/<booking_id>/
-
-    Mock payment flow:
-      1. Validate booking ownership + payment eligibility
-      2. Validate payment details (Luhn for card, UPI format)
-      3. Create payments row (pending_payment)
-      4. Simulate processing delay (1.5s)
-      5. Mark payment paid + confirm booking (atomic)
-      6. Fire confirmation notification
+    POST /api/payments/<booking_id>/checkout-session/
+    Create a Stripe Hosted Checkout Session.
     """
-
     def post(self, request, booking_id):
-        # ── Load booking ─────────────────────────────────────────────────────
         try:
             booking = Booking.objects.get(id=booking_id)
         except Booking.DoesNotExist:
@@ -66,88 +33,101 @@ class PaymentInitiateView(APIView):
             return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
 
         if booking.payment_status == 'paid':
-            return Response(
-                {'error': True, 'code': 'ALREADY_PAID',
-                 'message': 'This booking has already been paid.'},
-                status=http_status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({'error': True, 'code': 'ALREADY_PAID'}, status=400)
 
-        if booking.status == 'cancelled':
-            return Response(
-                {'error': True, 'code': 'BOOKING_CANCELLED',
-                 'message': 'Cannot pay for a cancelled booking.'},
-                status=http_status.HTTP_400_BAD_REQUEST,
-            )
-
-        # ── Load service amount ──────────────────────────────────────────────
         try:
             service = Service.objects.get(id=booking.service_id)
         except Service.DoesNotExist:
             return Response({'error': True, 'code': 'SERVICE_NOT_FOUND'}, status=404)
 
-        # ── Validate payment details ─────────────────────────────────────────
-        serializer = PaymentInitiateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+        amount = service.booking_fee or 0
+        
+        # Success and Cancel URLs
+        # In a real app, these should be configurable. 
+        # For now, we point back to the booking page with query params.
+        frontend_url = settings.FRONTEND_URL.rstrip('/')
+        success_url = f"{frontend_url}/book/{booking.service_id}?success=true&booking_id={booking.id}&session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{frontend_url}/book/{booking.service_id}?cancelled=true"
 
-        method = data['payment_method']
-
-        # Card-specific validation
-        if method == 'card':
-            raw_number = data.get('card_number', '').replace(' ', '')
-            if not _luhn_check(raw_number):
-                return Response(
-                    {'error': True, 'code': 'INVALID_CARD_NUMBER',
-                     'message': 'Card number is invalid.'},
-                    status=http_status.HTTP_400_BAD_REQUEST,
-                )
-            if not _validate_expiry(data.get('card_expiry', '')):
-                return Response(
-                    {'error': True, 'code': 'CARD_EXPIRED',
-                     'message': 'Card has expired or expiry date is invalid.'},
-                    status=http_status.HTTP_400_BAD_REQUEST,
-                )
-
-        # ── Create payment record ────────────────────────────────────────────
-        payment = Payment.objects.create(
-            booking_id=booking.id,
-            amount=service.booking_fee or 0,
-            currency='INR',
-            payment_method=method,
-            payment_status='pending_payment',
-            gateway_reference=f'MOCK-{uuid.uuid4().hex[:12].upper()}',
-        )
-
-        # ── Simulate 1.5s gateway processing ────────────────────────────────
-        time.sleep(1.5)
-
-        # ── Atomic: mark paid + confirm booking ──────────────────────────────
-        with transaction.atomic():
-            payment.payment_status = 'paid'
-            payment.save(update_fields=['payment_status'])
-
-            booking.payment_status = 'paid'
-            booking.status = 'confirmed'
-            booking.confirmed_at = timezone.now()
-            booking.save(update_fields=['payment_status', 'status', 'confirmed_at'])
-
-        # ── Notify ───────────────────────────────────────────────────────────
         try:
-            from notifications.tasks import send_booking_confirmation
-            send_booking_confirmation.delay(str(booking.id))
-        except Exception:
-            pass
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'inr',
+                        'product_data': {
+                            'name': f"Booking: {service.title}",
+                            'description': f"Appointment booking fee",
+                        },
+                        'unit_amount': int(amount * 100),
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata={'booking_id': str(booking.id)}
+            )
+            
+            # Record the session ID in the gateway_reference
+            Payment.objects.update_or_create(
+                booking_id=booking.id,
+                defaults={
+                    'amount': amount,
+                    'currency': 'INR',
+                    'payment_method': 'stripe_checkout',
+                    'payment_status': 'pending_payment',
+                    'gateway_reference': session.id
+                }
+            )
+            
+            return Response({'url': session.url})
+        except Exception as e:
+            return Response({'error': True, 'message': str(e)}, status=500)
 
-        return Response({
-            'payment_id': str(payment.id),
-            'booking_id': str(booking.id),
-            'payment_status': 'paid',
-            'booking_status': 'confirmed',
-            'gateway_reference': payment.gateway_reference,
-            'amount': str(payment.amount),
-            'currency': payment.currency,
-            'confirmation_token': booking.confirmation_token,
-        })
+
+class PaymentConfirmView(APIView):
+    """
+    POST /api/payments/<booking_id>/confirm/
+    Verify with Stripe that the checkout session succeeded.
+    """
+    def post(self, request, booking_id):
+        try:
+            booking = Booking.objects.get(id=booking_id)
+        except Booking.DoesNotExist:
+            return Response({'error': True, 'code': 'NOT_FOUND'}, status=404)
+
+        if str(booking.customer_id) != str(request.user.user_id):
+            return Response({'error': True, 'code': 'FORBIDDEN'}, status=403)
+
+        payment = Payment.objects.filter(booking_id=booking.id, payment_status='pending_payment').first()
+        if not payment or not payment.gateway_reference:
+            return Response({'error': True, 'code': 'NO_PENDING_PAYMENT'}, status=400)
+
+        try:
+            # Check session status
+            session = stripe.checkout.Session.retrieve(payment.gateway_reference)
+            if session.payment_status == 'paid':
+                with transaction.atomic():
+                    payment.payment_status = 'paid'
+                    payment.save(update_fields=['payment_status'])
+
+                    booking.payment_status = 'paid'
+                    booking.status = 'confirmed'
+                    booking.confirmed_at = timezone.now()
+                    booking.save(update_fields=['payment_status', 'status', 'confirmed_at'])
+
+                try:
+                    from notifications.tasks import send_booking_confirmation
+                    send_booking_confirmation.delay(str(booking.id))
+                except Exception:
+                    pass
+
+                return Response({'success': True})
+            else:
+                return Response({'error': True, 'code': 'PAYMENT_NOT_PAID', 'status': session.payment_status}, status=400)
+        except Exception as e:
+            return Response({'error': True, 'message': str(e)}, status=500)
 
 
 class PaymentStatusView(APIView):
