@@ -83,14 +83,41 @@ export default function BookingWizardPage() {
         } else if (data.resources?.length > 0) {
           update({ resourceId: data.resources[0].id });
         }
-        if (preDate) update({ step: 1 });
+        
+        // Handle Stripe Redirection
+        const success = searchParams.get("success");
+        const bookingId = searchParams.get("booking_id");
+        
+        if (success === "true" && bookingId) {
+          try {
+            // First confirm on backend
+            await customerApi(`/payments/${bookingId}/confirm/`, {
+              method: "POST",
+              requireAuth: true,
+            });
+            // Then fetch booking data
+            const bookingData = await customerApi(`/bookings/${bookingId}/`, {
+              requireAuth: true,
+            });
+            update({
+              step: data.advance_payment_required ? 4 : 3,
+              bookingId,
+              bookingData,
+            });
+          } catch (err) {
+            console.error("Confirmation error:", err);
+            setError("Could not verify your payment. Please contact support.");
+          }
+        } else if (preDate) {
+          update({ step: 1 });
+        }
       } catch {
         setError("Service not found.");
       }
       setLoading(false);
     }
     load();
-  }, [serviceId, preDate, update]);
+  }, [serviceId, preDate, update, searchParams]);
 
   // Cleanup hold on unmount
   useEffect(() => {

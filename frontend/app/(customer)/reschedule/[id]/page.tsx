@@ -63,7 +63,7 @@ export default function ReschedulePage() {
           &larr; Back
         </button>
 
-        <RescheduleWizard booking={booking} service={service} />
+        <RescheduleWizard booking={booking} maxCapacity={service?.max_capacity || 1} />
       </div>
     </div>
   );
