@@ -46,8 +46,15 @@ export async function customerApi(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== "undefined") {
+      import("js-cookie").then((Cookies) => {
+        Cookies.default.remove("access_token");
+        window.location.href = "/login";
+      });
+    }
+
     const err: any = new Error(
-      data.message || `API Error: ${response.status}`
+      data.detail || data.message || `API Error: ${response.status}`
     );
     err.status = response.status;
     err.code = data.code;

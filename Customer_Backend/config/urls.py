@@ -8,3 +8,9 @@ urlpatterns = [
     path('api/profile/',   include('profile_autofill.urls')),
     path('api/waitlist/',  include('waitlist.urls')),
 ]
+
+from django.http import JsonResponse
+from django.conf import settings
+def debug_key(request):
+    return JsonResponse({'key': settings.SECRET_KEY[:10]})
+urlpatterns.append(path('debug/', debug_key))

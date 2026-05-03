@@ -24,7 +24,7 @@ from .serializers import (
     BookingStatusSerializer,
 )
 from slots.models import SlotHold
-from services.availability import find_next_available_dates
+from services.availability import find_next_available_dates, compute_slot_availability
 
 
 def _assert_owns_booking(booking, request):
